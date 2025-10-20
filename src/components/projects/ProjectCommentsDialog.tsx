@@ -7,9 +7,11 @@ import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
 import { useProjects } from "@/context/ProjectsContext";
 import type { Project, Comment } from "@/lib/data";
-import { Send, MessageSquare } from "lucide-react";
+import { Send, MessageSquare, Loader2 } from "lucide-react";
 import { Avatar, AvatarFallback } from "../ui/avatar";
 import { formatDistanceToNow } from 'date-fns';
+import { useCollection, useFirestore, useUser, useMemoFirebase } from "@/firebase";
+import { collection, addDoc, serverTimestamp, query, orderBy, Timestamp } from "firebase/firestore";
 
 interface ProjectCommentsDialogProps {
     isOpen: boolean;
@@ -17,11 +19,25 @@ interface ProjectCommentsDialogProps {
     project: Project | null;
 }
 
+const formatTimestamp = (ts: Timestamp | null | undefined) => {
+    if (!ts) return '';
+    return formatDistanceToNow(ts.toDate(), { addSuffix: true });
+}
+
 export default function ProjectCommentsDialog({ isOpen, setIsOpen, project }: ProjectCommentsDialogProps) {
-    const { updateProject } = useProjects();
-    const [comments, setComments] = useState<Comment[]>([]);
+    const { getProjectCommentsRef } = useProjects();
     const [newComment, setNewComment] = useState('');
     const [username, setUsername] = useState('User');
+
+    const { user } = useUser();
+    const firestore = useFirestore();
+
+    const commentsQuery = useMemoFirebase(() => 
+        project && user ? query(getProjectCommentsRef(project.id), orderBy('timestamp', 'asc')) : null,
+        [project, user, getProjectCommentsRef]
+    );
+
+    const { data: comments, isLoading: areCommentsLoading } = useCollection<Comment>(commentsQuery);
 
     useEffect(() => {
       const savedUsername = localStorage.getItem('chatUsername');
@@ -29,25 +45,26 @@ export default function ProjectCommentsDialog({ isOpen, setIsOpen, project }: Pr
     }, []);
 
     useEffect(() => {
-        if (project) {
-            setComments(project.comments || []);
+        if (!isOpen) {
+            setNewComment('');
         }
+    }, [isOpen]);
+
+    const handleAddComment = async () => {
+      if (newComment.trim() === '' || !project || !user) return;
+
+      const commentsCol = collection(firestore, 'users', user.uid, 'projects', project.id, 'comments');
+      
+      try {
+        await addDoc(commentsCol, {
+            text: newComment,
+            author: username,
+            timestamp: serverTimestamp(),
+        });
         setNewComment('');
-    }, [project, isOpen]);
-
-    const handleAddComment = () => {
-      if (newComment.trim() === '' || !project) return;
-
-      const comment: Comment = {
-        id: `comment-${Date.now()}`,
-        text: newComment,
-        author: username,
-        timestamp: Date.now(),
+      } catch (error) {
+        console.error("Error adding comment:", error);
       }
-      const updatedComments = [...comments, comment];
-      setComments(updatedComments);
-      updateProject({ ...project, comments: updatedComments });
-      setNewComment('');
     }
 
     return (
@@ -63,7 +80,12 @@ export default function ProjectCommentsDialog({ isOpen, setIsOpen, project }: Pr
                 </DialogHeader>
                 
                 <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-4">
-                    {comments.length > 0 ? (
+                    {areCommentsLoading && (
+                         <div className="flex items-center justify-center h-full text-muted-foreground py-8">
+                            <Loader2 className="w-6 h-6 animate-spin" />
+                        </div>
+                    )}
+                    {!areCommentsLoading && comments && comments.length > 0 ? (
                         comments.map(comment => (
                             <div key={comment.id} className="flex gap-3">
                                 <Avatar className="h-8 w-8">
@@ -72,14 +94,14 @@ export default function ProjectCommentsDialog({ isOpen, setIsOpen, project }: Pr
                                 <div className="flex-1">
                                     <div className="flex items-baseline gap-2">
                                         <p className="font-semibold text-sm">{comment.author}</p>
-                                        <p className="text-xs text-muted-foreground">{formatDistanceToNow(comment.timestamp, { addSuffix: true })}</p>
+                                        <p className="text-xs text-muted-foreground">{formatTimestamp(comment.timestamp)}</p>
                                     </div>
                                     <p className="text-sm bg-muted/50 rounded-lg p-2">{comment.text}</p>
                                 </div>
                             </div>
                         ))
                     ) : (
-                        <p className="text-sm text-muted-foreground text-center py-8">No comments yet. Be the first to comment!</p>
+                       !areCommentsLoading && <p className="text-sm text-muted-foreground text-center py-8">No comments yet. Be the first to comment!</p>
                     )}
                 </div>
                 
@@ -108,4 +130,3 @@ export default function ProjectCommentsDialog({ isOpen, setIsOpen, project }: Pr
         </Dialog>
     );
 }
-

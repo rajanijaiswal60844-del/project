@@ -13,7 +13,8 @@ import Image from 'next/image';
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 import { Label } from '../ui/label';
 import { Card, CardContent } from '../ui/card';
-import type { Project } from '@/lib/data';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, addDoc, serverTimestamp, query, orderBy, Timestamp } from 'firebase/firestore';
 
 
 interface ForwardedProjectInfo {
@@ -25,20 +26,29 @@ interface ForwardedProjectInfo {
 interface Message {
   id: string;
   username: string;
-  text: string;
+  text?: string;
   image?: string;
   forwardedProject?: ForwardedProjectInfo;
+  timestamp?: Timestamp;
 }
 
 export default function AIChat() {
-  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [image, setImage] = useState<string | null>(null);
   const [username, setUsername] = useState<string | null>(null);
   const [usernameInput, setUsernameInput] = useState('');
   const [isUsernameModalOpen, setIsUsernameModalOpen] = useState(false);
-  const [isInitialized, setIsInitialized] = useState(false);
+
+  const { user } = useUser();
+  const firestore = useFirestore();
+
+  const messagesQuery = useMemoFirebase(() => 
+    user ? query(collection(firestore, 'users', user.uid, 'chatMessages'), orderBy('timestamp', 'asc')) : null,
+    [user, firestore]
+  );
+  const { data: messages, isLoading: isMessagesLoading } = useCollection<Message>(messagesQuery);
+
 
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -52,42 +62,32 @@ export default function AIChat() {
     } else {
       setIsUsernameModalOpen(true);
     }
-
-     const savedMessages = localStorage.getItem('chatMessages');
-    if (savedMessages) {
-        setMessages(JSON.parse(savedMessages));
-    }
     
-    const forwardedProjectRaw = sessionStorage.getItem('forwardedProject');
-    if (forwardedProjectRaw) {
-        try {
-            const project: ForwardedProjectInfo = JSON.parse(forwardedProjectRaw);
-            const userMessage: Message = {
-                id: `msg-${Date.now()}`,
-                username: savedUsername || 'User',
-                text: `Let's discuss the project: ${project.name}`,
-                forwardedProject: project,
-            };
-            setMessages((prev) => [...prev, userMessage]);
-        } catch (e) {
-            console.error("Failed to parse forwarded project", e);
-        } finally {
-             sessionStorage.removeItem('forwardedProject');
+    // Handle forwarded project from sessionStorage
+    const handleForwardedProject = async () => {
+        const forwardedProjectRaw = sessionStorage.getItem('forwardedProject');
+        if (forwardedProjectRaw && user && firestore) {
+            try {
+                const project: ForwardedProjectInfo = JSON.parse(forwardedProjectRaw);
+                const messagesCol = collection(firestore, 'users', user.uid, 'chatMessages');
+                await addDoc(messagesCol, {
+                    username: savedUsername || 'User',
+                    text: `Let's discuss the project: ${project.name}`,
+                    forwardedProject: project,
+                    timestamp: serverTimestamp(),
+                });
+            } catch (e) {
+                console.error("Failed to parse or save forwarded project", e);
+            } finally {
+                sessionStorage.removeItem('forwardedProject');
+            }
         }
-    }
-
-    setIsInitialized(true);
-  }, []);
-
-  useEffect(() => {
-    if (isInitialized) {
-        localStorage.setItem('chatMessages', JSON.stringify(messages));
-    }
-  }, [messages, isInitialized]);
-  
+    };
+    handleForwardedProject();
+  }, [user, firestore]);
 
   useEffect(() => {
-    if (messages.length) {
+    if (messages && messages.length > 0) {
       setTimeout(() => {
         if(scrollAreaRef.current) {
           scrollAreaRef.current.scrollTo({ top: scrollAreaRef.current.scrollHeight, behavior: 'smooth' });
@@ -109,17 +109,36 @@ export default function AIChat() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if ((!input.trim() && !image) || isLoading || !username) return;
+    if ((!input.trim() && !image) || isLoading || !username || !user) return;
 
-    const userMessage: Message = { 
-        id: `msg-${Date.now()}`,
+    const messagesCol = collection(firestore, 'users', user.uid, 'chatMessages');
+
+    const messageData: Partial<Message> & { timestamp: any } = {
         username,
-        text: input, 
-        image: image ?? undefined 
-    };
-    setMessages((prev) => [...prev, userMessage]);
+        text: input,
+        timestamp: serverTimestamp(),
+    }
+
+    if (image) {
+        messageData.image = image;
+    }
+    
     setInput('');
     setImage(null);
+    setIsLoading(true);
+
+    try {
+        await addDoc(messagesCol, messageData);
+    } catch(err) {
+        console.error("Error sending message:", err);
+        toast({
+            variant: "destructive",
+            title: "Send Error",
+            description: "Could not send message."
+        });
+    } finally {
+        setIsLoading(false);
+    }
   };
 
   const handleSetUsername = () => {
@@ -144,12 +163,17 @@ export default function AIChat() {
     <div className="flex flex-col h-full border rounded-lg">
       <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
         <div className="space-y-6 max-w-4xl mx-auto">
-          {messages.length === 0 && !isLoading && (
+          {isMessagesLoading && (
+            <div className="flex items-center justify-center h-full text-muted-foreground pt-16">
+              <Loader2 className="w-8 h-8 animate-spin" />
+            </div>
+          )}
+          {!isMessagesLoading && messages && messages.length === 0 && (
             <div className="flex items-center justify-center h-full text-muted-foreground pt-16">
               <p>Start a conversation.</p>
             </div>
           )}
-          {messages.map((message, index) => (
+          {messages && messages.map((message) => (
             <div key={message.id} className="flex items-start gap-3">
               <Avatar className="w-8 h-8">
                   <AvatarFallback>{message.username.charAt(0).toUpperCase()}</AvatarFallback>
@@ -219,7 +243,7 @@ export default function AIChat() {
                     <Paperclip className="h-5 w-5" />
                  </Button>
                 <Button type="submit" size="icon" disabled={isLoading || (!input.trim() && !image) || !username}>
-                  <Send className="h-5 w-5" />
+                  {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
                 </Button>
               </div>
             </form>

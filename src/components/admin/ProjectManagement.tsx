@@ -9,7 +9,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
-import { PlusCircle, Tags, Trash2, Pencil } from 'lucide-react';
+import { PlusCircle, Tags, Trash2, Pencil, Loader2 } from 'lucide-react';
 import ProjectForm from './ProjectForm';
 import ManageLabelsDialog from '../projects/ManageLabelsDialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
@@ -19,7 +19,7 @@ import ImagePreviewDialog from '../common/ImagePreviewDialog';
 
 
 export default function ProjectManagement() {
-    const { projects, deleteProject } = useProjects();
+    const { projects, deleteProject, isProjectsLoading } = useProjects();
     const { toast } = useToast();
 
     const [isProjectFormOpen, setIsProjectFormOpen] = useState(false);
@@ -81,8 +81,13 @@ setIsProjectFormOpen(true);
                                 <p>Labels</p>
                                 <div />
                             </div>
+                             {isProjectsLoading && (
+                                <div className="flex items-center justify-center p-8">
+                                    <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+                                </div>
+                            )}
                             <AnimatePresence>
-                                {projects.map(project => (
+                                {!isProjectsLoading && projects.map(project => (
                                     <motion.div
                                         key={project.id}
                                         layout
@@ -112,7 +117,7 @@ setIsProjectFormOpen(true);
                                     </motion.div>
                                 ))}
                             </AnimatePresence>
-                             {projects.length === 0 && (
+                             {!isProjectsLoading && projects.length === 0 && (
                                 <div className="text-center py-8 text-muted-foreground">
                                     <p>No projects found.</p>
                                 </div>

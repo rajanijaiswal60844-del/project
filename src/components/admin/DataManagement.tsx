@@ -4,37 +4,46 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { initialProjects, labels as initialLabels } from "@/lib/data";
+import { useProjects } from "@/context/ProjectsContext";
 
 export default function DataManagement() {
     const { toast } = useToast();
+    const { projects, labels, deleteProject, deleteLabel } = useProjects();
 
     const handleReset = () => {
-        // This is a bit of a hack, but it's the easiest way to reset the state
-        // without reloading the page and exposing context setters.
-        localStorage.setItem('projects', JSON.stringify(initialProjects));
-        const allInitialLabels = initialProjects.flatMap(p => p.labels);
-        const uniqueInitialLabels = [...new Set([...initialLabels, ...allInitialLabels])];
-        localStorage.setItem('projectLabels', JSON.stringify(uniqueInitialLabels));
-        localStorage.removeItem('verificationRecords');
-        
+        // This now needs to delete from Firestore
         toast({
-            title: "Data Reset",
-            description: "All projects, labels, and tasks have been reset. Please refresh the page.",
+            title: "Clearing Data...",
+            description: "Requesting deletion of all projects and labels.",
         });
 
-        setTimeout(() => window.location.reload(), 1000);
+        const projectDeletions = projects.map(p => deleteProject(p.id));
+        const labelDeletions = labels.map(l => deleteLabel(l.id));
+
+        Promise.all([...projectDeletions, ...labelDeletions]).then(() => {
+            toast({
+                title: "Data Reset",
+                description: "All projects and labels have been deleted from your account.",
+            });
+        }).catch(error => {
+             toast({
+                variant: "destructive",
+                title: "Deletion Failed",
+                description: "Could not delete all data. Please try again.",
+            });
+            console.error("Data reset failed:", error);
+        })
     }
 
     return (
         <Card>
             <CardHeader>
                 <CardTitle className="font-headline text-2xl">Data Management</CardTitle>
-                <CardDescription>Reset all application data to the default state.</CardDescription>
+                <CardDescription>Reset all your personal application data to the default state.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                 <p className="text-sm text-muted-foreground">
-                    Warning: This action is irreversible and will delete all custom projects, labels, tasks, and verification history.
+                    Warning: This action is irreversible and will permanently delete all of your custom projects and labels from your account.
                 </p>
                  <Button variant="destructive" onClick={handleReset} className="w-full">
                     Reset All Data

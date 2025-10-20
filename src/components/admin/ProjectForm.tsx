@@ -87,12 +87,7 @@ export default function ProjectForm({ isOpen, setIsOpen, existingProject }: Proj
                 description: `"${name}" has been successfully updated.`
             });
         } else {
-            const newProject: Project = {
-                id: `proj-${Date.now()}`,
-                ...projectData,
-                comments: [] // New projects start with no comments
-            };
-            addProject(newProject);
+            addProject(projectData as any);
             toast({
                 title: 'Project Added',
                 description: `"${name}" has been successfully added.`

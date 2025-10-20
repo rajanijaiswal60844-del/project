@@ -25,11 +25,11 @@ export default function ManageLabelsDialog({ isOpen, setIsOpen }: ManageLabelsDi
             toast({ variant: 'destructive', title: 'Label cannot be empty.' });
             return;
         }
-        if (labels.includes(newLabel.trim())) {
+        if (labels.some(l => l.name.toLowerCase() === newLabel.trim().toLowerCase())) {
              toast({ variant: 'destructive', title: 'Label already exists.' });
             return;
         }
-        addLabel(newLabel.trim());
+        addLabel({ name: newLabel.trim() });
         setNewLabel('');
         toast({ title: `Label "${newLabel.trim()}" added.`});
     }
@@ -41,9 +41,9 @@ export default function ManageLabelsDialog({ isOpen, setIsOpen }: ManageLabelsDi
         }
     }
     
-    const handleDeleteLabel = (label: string) => {
-        deleteLabel(label);
-        toast({ variant: 'destructive', title: `Label "${label}" deleted.`});
+    const handleDeleteLabel = (labelId: string, labelName: string) => {
+        deleteLabel(labelId);
+        toast({ variant: 'destructive', title: `Label "${labelName}" deleted.`});
     }
 
   return (
@@ -69,9 +69,9 @@ export default function ManageLabelsDialog({ isOpen, setIsOpen }: ManageLabelsDi
                 <p className="text-sm font-medium text-muted-foreground">Existing Labels</p>
                 <div className="flex flex-wrap gap-2">
                     {labels.map(label => (
-                        <Badge key={label} variant="secondary" className="font-normal text-base pl-3 pr-1 py-1">
-                            {label}
-                            <button onClick={() => handleDeleteLabel(label)} className="ml-2 rounded-full hover:bg-destructive/20 p-0.5">
+                        <Badge key={label.id} variant="secondary" className="font-normal text-base pl-3 pr-1 py-1">
+                            {label.name}
+                            <button onClick={() => handleDeleteLabel(label.id, label.name)} className="ml-2 rounded-full hover:bg-destructive/20 p-0.5">
                                 <X className="h-3 w-3" />
                             </button>
                         </Badge>

@@ -7,19 +7,19 @@ import { Button } from '../ui/button';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useProjects } from '@/context/ProjectsContext';
 import { Input } from '../ui/input';
-import { Search } from 'lucide-react';
+import { Loader2, Search } from 'lucide-react';
 import type { Project } from '@/lib/data';
 import ProjectCommentsDialog from './ProjectCommentsDialog';
 
 export default function ProjectList() {
-  const { projects, labels } = useProjects();
+  const { projects, labels, isProjectsLoading, isLabelsLoading } = useProjects();
   const [activeFilter, setActiveFilter] = useState<string>('All');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   
   useEffect(() => {
     const projectIdToHighlight = sessionStorage.getItem('highlightProject');
-    if (projectIdToHighlight) {
+    if (projectIdToHighlight && !isProjectsLoading) {
         const element = document.getElementById(`project-card-${projectIdToHighlight}`);
         if (element) {
             element.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -30,7 +30,7 @@ export default function ProjectList() {
         }
         sessionStorage.removeItem('highlightProject');
     }
-  }, [projects]);
+  }, [projects, isProjectsLoading]);
 
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -42,6 +42,8 @@ export default function ProjectList() {
     const searchTermMatch = project.name.toLowerCase().includes(searchTerm.toLowerCase()) || project.description.toLowerCase().includes(searchTerm.toLowerCase());
     return labelMatch && searchTermMatch;
   });
+
+  const isLoading = isProjectsLoading || isLabelsLoading;
 
   return (
     <>
@@ -76,21 +78,27 @@ export default function ProjectList() {
           </Button>
           {labels.map(label => (
             <Button
-              key={label}
+              key={label.id}
               size="sm"
-              variant={activeFilter === label ? 'default' : 'outline'}
-              onClick={() => setActiveFilter(label)}
+              variant={activeFilter === label.name ? 'default' : 'outline'}
+              onClick={() => setActiveFilter(label.name)}
               className="rounded-full"
             >
-              {label}
+              {label.name}
             </Button>
           ))}
         </div>
       </div>
       
+      {isLoading && (
+        <div className="flex justify-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+        </div>
+      )}
+
       <motion.div layout className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
          <AnimatePresence>
-            {filteredProjects.map(project => (
+            {!isLoading && filteredProjects.map(project => (
                  <motion.div
                     key={project.id}
                     layout
@@ -104,9 +112,9 @@ export default function ProjectList() {
             ))}
         </AnimatePresence>
       </motion.div>
-      {filteredProjects.length === 0 && (
+      {!isLoading && filteredProjects.length === 0 && (
         <div className="text-center py-12 text-muted-foreground">
-            <p>No projects found matching your criteria.</p>
+            <p>No projects found. Add one from the Admin Panel.</p>
         </div>
       )}
     </div>

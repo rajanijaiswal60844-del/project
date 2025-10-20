@@ -1,103 +1,111 @@
 
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { initialProjects, labels as initialLabels, type Project } from '@/lib/data';
+import React, { createContext, useContext, ReactNode } from 'react';
+import { initialProjects, labels as initialLabelsData, type Project, type Label } from '@/lib/data';
+import { useCollection, useFirestore, useUser, useMemoFirebase } from '@/firebase';
+import { collection, doc, setDoc, addDoc, deleteDoc, serverTimestamp, query, orderBy } from 'firebase/firestore';
 
 interface ProjectsContextType {
   projects: Project[];
-  labels: string[];
-  addProject: (project: Project) => void;
+  labels: Label[];
+  isProjectsLoading: boolean;
+  isLabelsLoading: boolean;
+  addProject: (project: Omit<Project, 'id' | 'createdAt'>) => void;
   updateProject: (project: Project) => void;
   deleteProject: (projectId: string) => void;
-  addLabel: (label: string) => void;
-  deleteLabel: (label: string) => void;
+  addLabel: (label: Omit<Label, 'id'>) => void;
+  deleteLabel: (labelId: string) => void;
+  getProjectCommentsRef: (projectId: string) => any;
+  updateProjectComments: (projectId: string, comments: any) => void;
 }
 
 const ProjectsContext = createContext<ProjectsContextType | undefined>(undefined);
 
 export function ProjectsProvider({ children }: { children: ReactNode }) {
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [labels, setLabels] = useState<string[]>([]);
-  const [isInitialized, setIsInitialized] = useState(false);
+  const { user } = useUser();
+  const firestore = useFirestore();
 
-  useEffect(() => {
-    try {
-      const storedProjects = localStorage.getItem('projects');
-      const storedLabels = localStorage.getItem('projectLabels');
+  const projectsQuery = useMemoFirebase(() => 
+    user ? query(collection(firestore, 'users', user.uid, 'projects'), orderBy('createdAt', 'desc')) : null,
+    [user, firestore]
+  );
+  const { data: projects, isLoading: isProjectsLoading } = useCollection<Project>(projectsQuery);
 
-      if (storedProjects) {
-        setProjects(JSON.parse(storedProjects));
-      } else {
-        setProjects(initialProjects);
-        localStorage.setItem('projects', JSON.stringify(initialProjects));
-      }
+  const labelsQuery = useMemoFirebase(() =>
+    user ? collection(firestore, 'users', user.uid, 'labels') : null,
+    [user, firestore]
+  );
+  const { data: labels, isLoading: isLabelsLoading } = useCollection<Label>(labelsQuery);
 
-      if (storedLabels) {
-          setLabels(JSON.parse(storedLabels));
-      } else {
-        const allInitialLabels = initialProjects.flatMap(p => p.labels);
-        const uniqueInitialLabels = [...new Set([...initialLabels, ...allInitialLabels])];
-        setLabels(uniqueInitialLabels);
-        localStorage.setItem('projectLabels', JSON.stringify(uniqueInitialLabels));
-      }
 
-    } catch (error) {
-      console.error("Failed to access localStorage or parse data:", error);
-      setProjects(initialProjects);
-      setLabels(initialLabels);
-    }
-    setIsInitialized(true);
-  }, []);
-
-  useEffect(() => {
-    if (isInitialized) {
-        try {
-            localStorage.setItem('projects', JSON.stringify(projects));
-            // Recalculate labels from projects, but don't remove custom ones unless they are explicitly deleted
-            const projectLabels = projects.flatMap(p => p.labels);
-            const combinedLabels = [...new Set([...labels, ...projectLabels])];
-            setLabels(combinedLabels);
-        } catch (error) {
-            console.error("Failed to save projects to localStorage:", error);
-        }
-    }
-  }, [projects, isInitialized]);
-
-    useEffect(() => {
-        if (isInitialized) {
-            localStorage.setItem('projectLabels', JSON.stringify(labels));
-        }
-    }, [labels, isInitialized]);
-
-  const addProject = (project: Project) => {
-    setProjects(prevProjects => [project, ...prevProjects]);
+  const addProject = async (projectData: Omit<Project, 'id' | 'createdAt'>) => {
+    if (!user) return;
+    const projectsCol = collection(firestore, 'users', user.uid, 'projects');
+    await addDoc(projectsCol, {
+      ...projectData,
+      createdAt: serverTimestamp(),
+    });
   };
 
-  const updateProject = (updatedProject: Project) => {
-    setProjects(prevProjects => prevProjects.map(p => p.id === updatedProject.id ? updatedProject : p));
+  const updateProject = async (updatedProject: Project) => {
+    if (!user) return;
+    const projectRef = doc(firestore, 'users', user.uid, 'projects', updatedProject.id);
+    await setDoc(projectRef, updatedProject, { merge: true });
   }
 
-  const deleteProject = (projectId: string) => {
-    setProjects(prevProjects => prevProjects.filter(p => p.id !== projectId));
+  const deleteProject = async (projectId: string) => {
+    if (!user) return;
+    const projectRef = doc(firestore, 'users', user.uid, 'projects', projectId);
+    await deleteDoc(projectRef);
   }
 
-  const addLabel = (label: string) => {
-    if (label && !labels.includes(label)) {
-        setLabels(prevLabels => [...prevLabels, label]);
-    }
+  const addLabel = async (labelData: Omit<Label, 'id'>) => {
+    if (!user) return;
+    const labelsCol = collection(firestore, 'users', user.uid, 'labels');
+    await addDoc(labelsCol, labelData);
   }
 
-  const deleteLabel = (labelToDelete: string) => {
-    setLabels(prevLabels => prevLabels.filter(l => l !== labelToDelete));
-    // Also remove the label from all projects that use it
-    setProjects(prevProjects => prevProjects.map(p => ({
-        ...p,
-        labels: p.labels.filter(l => l !== labelToDelete)
-    })))
+  const deleteLabel = async (labelId: string) => {
+    if (!user) return;
+    const labelRef = doc(firestore, 'users', user.uid, 'labels', labelId);
+    await deleteDoc(labelRef);
+
+    // This part is tricky without transactions on the client-side. 
+    // A cloud function would be better, but for now, we remove the label from projects one by one.
+    projects?.forEach(p => {
+        if (p.labels.includes(labels?.find(l => l.id === labelId)?.name || '')) {
+            const updatedLabels = p.labels.filter(lName => lName !== labels?.find(l => l.id === labelId)?.name);
+            updateProject({ ...p, labels: updatedLabels });
+        }
+    });
   }
 
-  const value = { projects, labels, addProject, updateProject, deleteProject, addLabel, deleteLabel };
+  const getProjectCommentsRef = (projectId: string) => {
+    if (!user) return null;
+    return collection(firestore, 'users', user.uid, 'projects', projectId, 'comments');
+  }
+
+  const updateProjectComments = async (projectId: string, comments: any) => {
+      // This function is a bit of a placeholder. In a real app, you'd add one comment at a time.
+      if (!user) return;
+      console.log("Updating comments is not fully implemented in context. Handle single comment adds.", projectId, comments);
+  }
+
+
+  const value = { 
+      projects: projects || [], 
+      labels: labels || [],
+      isProjectsLoading,
+      isLabelsLoading,
+      addProject, 
+      updateProject, 
+      deleteProject, 
+      addLabel, 
+      deleteLabel,
+      getProjectCommentsRef,
+      updateProjectComments
+    };
 
   return (
     <ProjectsContext.Provider value={value}>
