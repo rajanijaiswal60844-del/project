@@ -4,7 +4,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { initialTasks } from "@/lib/data";
 import { initialProjects, labels as initialLabels } from "@/lib/data";
 
 export default function DataManagement() {
@@ -17,7 +16,6 @@ export default function DataManagement() {
         const allInitialLabels = initialProjects.flatMap(p => p.labels);
         const uniqueInitialLabels = [...new Set([...initialLabels, ...allInitialLabels])];
         localStorage.setItem('projectLabels', JSON.stringify(uniqueInitialLabels));
-        localStorage.setItem('studyTasks', JSON.stringify(initialTasks));
         localStorage.removeItem('verificationRecords');
         
         toast({
