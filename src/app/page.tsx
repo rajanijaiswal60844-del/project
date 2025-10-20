@@ -12,12 +12,15 @@ export default function Home() {
       <div>
         <h1 className="text-3xl md:text-4xl font-headline font-bold text-foreground">Welcome to your Dashboard</h1>
         <p className="text-muted-foreground mt-2">
-          Your central hub for projects and tasks. Let's get started!
+          Your central hub for games and projects. Let's get started!
         </p>
       </div>
-      <div className="flex justify-center w-full">
+      <div className="flex justify-center w-full flex-wrap gap-4">
         <Button size="lg" onClick={() => router.push('/tictactoe')}>
             Play Tic-Tac-Toe
+        </Button>
+        <Button size="lg" onClick={() => router.push('/hangman')} variant="outline">
+            Play Hangman
         </Button>
       </div>
     </div>
