@@ -71,10 +71,13 @@ export default function FaceUploader() {
     
     const confirmSave = () => {
         setIsSaving(true);
-        // Simulate saving to a database
+        // Save the captured image to localStorage.
+        // In a real app, this would be sent to a secure backend.
         setTimeout(() => {
-            // In a real app, you would save the capturedImage (data URL) to your backend.
-            console.log("Saving user image...");
+            if (capturedImage) {
+                localStorage.setItem('authorizedUserFace', capturedImage);
+                console.log("Saving user image to localStorage...");
+            }
             setIsSaving(false);
             setCapturedImage(null);
             setShowSaveConfirm(false);
@@ -91,12 +94,12 @@ export default function FaceUploader() {
 
     return (
         <>
-            <Card>
+            <Card className="flex flex-col">
                 <CardHeader>
                     <CardTitle className="font-headline text-2xl">User Identity Validation</CardTitle>
-                    <CardDescription>Capture and save face photos for new users to enable login.</CardDescription>
+                    <CardDescription>Capture and save a face photo for the authorized user.</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-4 flex-1">
                     <div className="aspect-video w-full rounded-lg bg-muted flex flex-col items-center justify-center gap-2 text-muted-foreground overflow-hidden relative">
                         {hasCameraPermission === null && <Loader2 className="w-12 h-12 animate-spin" />}
                         {hasCameraPermission === false && <p>Camera access denied.</p>}
@@ -139,7 +142,7 @@ export default function FaceUploader() {
                     <AlertDialogHeader>
                     <AlertDialogTitle>Confirm New User</AlertDialogTitle>
                     <AlertDialogDescription>
-                        Are you sure you want to save this capture as a new authorized user? This action cannot be undone.
+                        Are you sure you want to save this capture as the new authorized user? This will overwrite any existing user.
                     </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>

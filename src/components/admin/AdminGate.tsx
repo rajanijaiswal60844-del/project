@@ -1,34 +1,25 @@
+
 'use client';
 
-import { useState, useEffect, FormEvent } from 'react';
+import { useState, FormEvent } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../ui/card';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { Label } from '../ui/label';
-import { Lock, Loader2 } from 'lucide-react';
+import { Lock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const ADMIN_PASSWORD = 'jsjsjjsjj';
 
 export default function AdminGate({ children }: { children: React.ReactNode }) {
   const [isVerified, setIsVerified] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const { toast } = useToast();
 
-  useEffect(() => {
-    const storedStatus = sessionStorage.getItem('isAdminVerified');
-    if (storedStatus === 'true') {
-      setIsVerified(true);
-    }
-    setIsLoading(false);
-  }, []);
-
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (password === ADMIN_PASSWORD) {
-      sessionStorage.setItem('isAdminVerified', 'true');
       setIsVerified(true);
       setError('');
       toast({ title: "Access Granted", description: "Welcome to the Admin Panel." });
@@ -36,14 +27,6 @@ export default function AdminGate({ children }: { children: React.ReactNode }) {
       setError('Incorrect password. Please try again.');
     }
   };
-
-  if (isLoading) {
-    return (
-        <div className="flex items-center justify-center h-96">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-    );
-  }
 
   if (!isVerified) {
     return (

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useRouter } from 'next/navigation';
@@ -12,10 +13,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     setIsClient(true);
+    // Always check for login status on component mount, do not rely on a long-lived state
     const loggedIn = localStorage.getItem('isLoggedIn') === 'true';
-    setIsAuthenticated(loggedIn);
     if (!loggedIn) {
       router.replace('/login');
+    } else {
+      setIsAuthenticated(true);
     }
   }, [router]);
   
