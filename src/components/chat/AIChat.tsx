@@ -7,7 +7,6 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { BotIcon } from './BotIcon';
 import { Loader2, Send, Paperclip, X } from 'lucide-react';
 import { Avatar, AvatarFallback } from '../ui/avatar';
-import { aiChatWithGemini } from '@/ai/flows/ai-chat-with-gemini';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 
@@ -55,36 +54,19 @@ export default function AIChat() {
     setMessages((prev) => [...prev, userMessage]);
     setInput('');
     setImage(null);
-    setIsLoading(true);
-
-    try {
-        const result = await aiChatWithGemini({ query: input, image: image ?? undefined });
-        const botMessage: Message = { role: 'bot', text: result.response };
-        setMessages((prev) => [...prev, botMessage]);
-    } catch (error) {
-        console.error("AI chat error:", error);
-        toast({
-            variant: "destructive",
-            title: "Error",
-            description: "Failed to get a response from the AI."
-        });
-        setMessages(prev => prev.slice(0, -1));
-    } finally {
-        setIsLoading(false);
-    }
   };
 
   return (
     <div className="flex flex-col h-full">
       <div className="text-center py-4 border-b">
-        <h1 className="text-2xl font-headline">AI Assistant</h1>
-        <p className="text-muted-foreground">Ask questions, get answers, and even analyze images.</p>
+        <h1 className="text-2xl font-headline">Chat</h1>
+        <p className="text-muted-foreground">Send messages and share files.</p>
       </div>
       <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
         <div className="space-y-6 max-w-4xl mx-auto">
           {messages.length === 0 && !isLoading && (
             <div className="flex items-center justify-center h-full text-muted-foreground pt-16">
-              <p>Start a conversation with the AI assistant.</p>
+              <p>Start a conversation.</p>
             </div>
           )}
           {messages.map((message, index) => (
