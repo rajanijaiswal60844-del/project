@@ -121,26 +121,24 @@ export default function TopNav({ onLogout }: TopNavProps) {
                 </Link>
               </Button>
         ))}
-         <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="flex-1 h-full rounded-none flex-col gap-1 text-xs">
-                     <MoreVertical className="h-5 w-5" />
-                     <span>More</span>
-                </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" side="top">
-                <DropdownMenuItem asChild>
-                  <Link href="/admin" className="flex items-center cursor-pointer">
-                    <Shield className="mr-2 h-4 w-4" />
-                    <span>Admin</span>
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={onLogout} className="cursor-pointer">
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Log out</span>
-                </DropdownMenuItem>
-            </DropdownMenuContent>
-        </DropdownMenu>
+        <Button
+            asChild
+            variant={pathname === '/admin' ? 'secondary' : 'ghost'}
+            className="flex-1 h-full rounded-none flex-col gap-1 text-xs"
+        >
+            <Link href="/admin">
+                <Shield className="h-5 w-5" />
+                <span>Admin</span>
+            </Link>
+        </Button>
+        <Button
+            variant={'ghost'}
+            className="flex-1 h-full rounded-none flex-col gap-1 text-xs"
+            onClick={onLogout}
+        >
+            <LogOut className="h-5 w-5" />
+            <span>Log out</span>
+        </Button>
       </div>
     </header>
   );
