@@ -2,16 +2,19 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, FolderKanban, MessageCircle, User, LogOut, Shield } from 'lucide-react';
+import { Home, FolderKanban, MessageCircle, LogOut, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '../ui/dropdown-menu';
 
 const navItems = [
   { href: '/', label: 'Dashboard', icon: Home },
   { href: '/projects', label: 'Projects', icon: FolderKanban },
   { href: '/chat', label: 'Chat', icon: MessageCircle },
 ];
+
+const adminNavItems = [
+    { href: '/admin', label: 'Admin', icon: Shield },
+]
 
 interface TopNavProps {
   onLogout: () => void;
@@ -50,33 +53,31 @@ export default function TopNav({ onLogout }: TopNavProps) {
             ))}
           </nav>
           <div className="flex items-center gap-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                  <User className="h-5 w-5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56" align="end" forceMount>
-                <DropdownMenuItem asChild>
-                  <Link href="/admin">
-                    <Shield className="mr-2 h-4 w-4" />
-                    <span>Admin</span>
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={onLogout}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Log out</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <Button asChild variant="ghost" size="icon">
+                        <Link href="/admin">
+                            <Shield className="h-5 w-5" />
+                        </Link>
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent><p>Admin</p></TooltipContent>
+            </Tooltip>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" onClick={onLogout}>
+                        <LogOut className="h-5 w-5" />
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent><p>Log out</p></TooltipContent>
+            </Tooltip>
           </div>
         </div>
       </TooltipProvider>
 
         {/* Mobile Nav */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-card border-t h-16 flex items-center justify-around">
-         {navItems.map((item) => (
+         {[...navItems, ...adminNavItems].map((item) => (
               <Button
                 key={item.label}
                 asChild
@@ -89,27 +90,10 @@ export default function TopNav({ onLogout }: TopNavProps) {
                 </Link>
               </Button>
         ))}
-         <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                 <Button variant="ghost" className="flex-1 h-full rounded-none flex-col gap-1 text-xs">
-                    <User className="h-5 w-5" />
-                    <span>Profile</span>
-                </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56 mb-2" align="end" forceMount>
-                <DropdownMenuItem asChild>
-                  <Link href="/admin">
-                    <Shield className="mr-2 h-4 w-4" />
-                    <span>Admin</span>
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={onLogout}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Log out</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-        </DropdownMenu>
+         <Button variant="ghost" className="flex-1 h-full rounded-none flex-col gap-1 text-xs" onClick={onLogout}>
+            <LogOut className="h-5 w-5" />
+            <span>Log out</span>
+        </Button>
       </div>
     </header>
   );
