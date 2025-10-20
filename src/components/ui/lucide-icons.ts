@@ -39,5 +39,6 @@ export {
     Paperclip,
     FileArchive,
     File,
-    UserCircle
+    UserCircle,
+    Volume2
 } from 'lucide-react';

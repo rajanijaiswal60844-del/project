@@ -5,15 +5,17 @@ import { useState, useRef, FormEvent, useEffect, ChangeEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, Send, Paperclip, X, User } from 'lucide-react';
+import { Loader2, Send, Paperclip, X, User, Volume2 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '../ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { aiChatWithGemini } from '@/ai/flows/ai-chat-with-gemini';
+import { textToSpeech } from '@/ai/flows/text-to-speech-flow';
 import { BotIcon } from './BotIcon';
 
 
 interface AIChatMessage {
+  id: string;
   role: 'user' | 'bot';
   text: string;
   image?: string;
@@ -24,6 +26,9 @@ export default function AIChat() {
   const [isLoading, setIsLoading] = useState(false);
   const [image, setImage] = useState<string | null>(null);
   const [messages, setMessages] = useState<AIChatMessage[]>([]);
+  const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
+  const [loadingAudioId, setLoadingAudioId] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -55,11 +60,38 @@ export default function AIChat() {
     }
   };
 
+  const handlePlayAudio = async (message: AIChatMessage) => {
+    if (playingAudioId === message.id && audioRef.current) {
+      audioRef.current.pause();
+      setPlayingAudioId(null);
+      return;
+    }
+
+    setLoadingAudioId(message.id);
+    setPlayingAudioId(null);
+
+    try {
+        const result = await textToSpeech(message.text);
+        const audio = new Audio(result.media);
+        audioRef.current = audio;
+        audio.play();
+        setPlayingAudioId(message.id);
+        audio.onended = () => {
+            setPlayingAudioId(null);
+        };
+    } catch(e) {
+        toast({ variant: 'destructive', title: 'TTS Error', description: 'Could not generate audio.' });
+        console.error(e);
+    } finally {
+        setLoadingAudioId(null);
+    }
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if ((!input.trim() && !image) || isLoading) return;
 
-    const userMessage: AIChatMessage = { role: 'user', text: input, image: image || undefined };
+    const userMessage: AIChatMessage = { id: Date.now().toString(), role: 'user', text: input, image: image || undefined };
     setMessages(prev => [...prev, userMessage]);
     
     const currentInput = input;
@@ -71,7 +103,7 @@ export default function AIChat() {
 
     try {
       const result = await aiChatWithGemini({ query: currentInput, image: currentImage || undefined });
-      const botMessage: AIChatMessage = { role: 'bot', text: result.response };
+      const botMessage: AIChatMessage = { id: (Date.now() + 1).toString(), role: 'bot', text: result.response };
       setMessages(prev => [...prev, botMessage]);
     } catch (error) {
       console.error("AI Chat Error:", error);
@@ -96,12 +128,12 @@ export default function AIChat() {
               <p>Ask the AI anything. You can also upload an image.</p>
             </div>
           )}
-          {messages.map((message, index) => (
-            <div key={index} className={`flex items-start gap-3 ${message.role === 'user' ? '' : 'flex-row'}`}>
+          {messages.map((message) => (
+            <div key={message.id} className={`flex items-start gap-3 ${message.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
               <Avatar className="w-8 h-8">
                 {message.role === 'user' ? <User /> : <BotIcon />}
               </Avatar>
-              <div className="flex-1">
+              <div className={`flex-1 ${message.role === 'user' ? 'text-right' : ''}`}>
                  <p className="font-bold text-sm">{message.role === 'user' ? 'You' : 'AI Assistant'}</p>
                 <div className={`rounded-lg px-4 py-2 inline-block max-w-[90%] ${message.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
                     {message.image && (
@@ -111,6 +143,21 @@ export default function AIChat() {
                     )}
                     <p className="text-sm whitespace-pre-wrap">{message.text}</p>
                 </div>
+                {message.role === 'bot' && (
+                    <Button 
+                        size="icon" 
+                        variant="ghost" 
+                        className="h-8 w-8 mt-1"
+                        onClick={() => handlePlayAudio(message)}
+                        disabled={loadingAudioId === message.id}
+                    >
+                         {loadingAudioId === message.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                            <Volume2 className="w-4 h-4" />
+                        )}
+                    </Button>
+                )}
               </div>
             </div>
           ))}
