@@ -2,10 +2,11 @@
 'use client';
 
 import { useState, useRef, useEffect, ReactNode, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { Camera, Loader2 } from 'lucide-react';
+import { Camera, Loader2, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { verifyFace } from '@/ai/flows/verify-face';
 
@@ -16,6 +17,7 @@ export default function ProjectAccessGate({ children }: { children: ReactNode })
   const { toast } = useToast();
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const router = useRouter();
 
   const getCameraPermission = useCallback(async () => {
       try {
@@ -31,6 +33,12 @@ export default function ProjectAccessGate({ children }: { children: ReactNode })
     }, []);
 
   useEffect(() => {
+    // Check if user was already verified in this session
+    if (sessionStorage.getItem('projects-access-granted') === 'true') {
+        setIsVerified(true);
+        return;
+    }
+
     if (!isVerified) {
         getCameraPermission();
     }
@@ -78,6 +86,7 @@ export default function ProjectAccessGate({ children }: { children: ReactNode })
                     if (result.isMatch) {
                         localStorage.setItem('lastAccessImage', capturedImage);
                         localStorage.setItem('lastAccessTime', new Date().toISOString());
+                        sessionStorage.setItem('projects-access-granted', 'true');
                         
                         setIsVerified(true);
                         toast({
@@ -140,10 +149,15 @@ export default function ProjectAccessGate({ children }: { children: ReactNode })
                         </Alert>
                     )}
                 </div>
-                <DialogFooter>
+                <DialogFooter className="grid grid-cols-2 gap-2">
                     <Button
-                        className="w-full"
-                        size="lg"
+                        variant="outline"
+                        onClick={() => router.back()}
+                    >
+                        <ArrowLeft className="mr-2 h-5 w-5" />
+                        Back
+                    </Button>
+                    <Button
                         onClick={handleVerification}
                         disabled={isVerifying || hasCameraPermission !== true}
                     >
@@ -155,7 +169,7 @@ export default function ProjectAccessGate({ children }: { children: ReactNode })
                         ) : (
                         <>
                             <Camera className="mr-2 h-5 w-5" />
-                            Verify Identity
+                            Verify
                         </>
                         )}
                     </Button>
