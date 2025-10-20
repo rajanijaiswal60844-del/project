@@ -87,7 +87,7 @@ export default function StudyPlanner() {
           </Button>
         </CardHeader>
         <CardContent>
-          <div className="relative h-[600px] overflow-y-auto">
+          <div className="relative h-[600px] overflow-y-auto pr-4">
             <div className="absolute top-0 left-12 right-0 bottom-0 grid grid-cols-24">
               {hours.map((_, index) => (
                 <div key={index} className="h-full border-r border-dashed border-border"></div>

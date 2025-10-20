@@ -1,4 +1,7 @@
+
 import StudyPlanner from "@/components/tasks/StudyPlanner";
+import TaskTimeline from "@/components/tasks/TaskTimeline";
+import { Separator } from "@/components/ui/separator";
 
 export default function Home() {
   return (
@@ -11,6 +14,10 @@ export default function Home() {
       </div>
       
       <StudyPlanner />
+
+      <Separator />
+
+      <TaskTimeline />
       
     </div>
   );
