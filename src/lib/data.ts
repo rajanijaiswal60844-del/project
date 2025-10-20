@@ -1,3 +1,4 @@
+
 export type Project = {
   id: string;
   name: string;
@@ -55,7 +56,7 @@ export const projects: Project[] = [
 ];
 
 export const initialTasks: StudyTask[] = [
-    { id: 'task-1', name: 'Math Practice', startTime: '09:00', endTime: '10:30', color: 'hsl(var(--primary))' },
+    { id: 'task-1', name: 'Math Practice', startTime: '09:00', endTime: '10:30', color: 'hsl(var(--primary))', projectId: 'proj-4' },
     { id: 'task-2', name: 'Chemistry Review', startTime: '11:00', endTime: '12:00', color: 'hsl(var(--accent))' },
-    { id: 'task-3', name: 'History Reading', startTime: '14:30', endTime: '16:00', color: 'hsl(var(--secondary))' },
+    { id: 'task-3', name: 'History Reading', startTime: '14:30', endTime: '16:00', color: 'hsl(var(--secondary))', projectId: 'proj-1' },
 ];

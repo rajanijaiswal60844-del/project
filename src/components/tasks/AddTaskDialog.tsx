@@ -10,13 +10,16 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useTasks } from '@/context/TasksContext';
+import { useProjects } from '@/context/ProjectsContext';
 import type { StudyTask } from '@/lib/data';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
 const taskSchema = z.object({
   name: z.string().min(1, 'Task name is required.'),
   startTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Invalid time format (HH:MM).'),
   endTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Invalid time format (HH:MM).'),
   color: z.string(),
+  projectId: z.string().optional(),
 }).refine(data => data.startTime < data.endTime, {
     message: "End time must be after start time.",
     path: ["endTime"],
@@ -42,6 +45,7 @@ const colors = [
 
 export default function AddTaskDialog({ isOpen, setIsOpen, existingTask }: AddTaskDialogProps) {
   const { addTask, updateTask } = useTasks();
+  const { projects } = useProjects();
   const { register, handleSubmit, control, reset, formState: { errors } } = useForm<TaskFormData>({
     resolver: zodResolver(taskSchema),
     defaultValues: {
@@ -49,6 +53,7 @@ export default function AddTaskDialog({ isOpen, setIsOpen, existingTask }: AddTa
       startTime: '09:00',
       endTime: '10:00',
       color: colors[0],
+      projectId: undefined,
     }
   });
 
@@ -59,6 +64,7 @@ export default function AddTaskDialog({ isOpen, setIsOpen, existingTask }: AddTa
             startTime: existingTask.startTime,
             endTime: existingTask.endTime,
             color: existingTask.color,
+            projectId: existingTask.projectId,
         });
     } else {
         reset({
@@ -66,6 +72,7 @@ export default function AddTaskDialog({ isOpen, setIsOpen, existingTask }: AddTa
             startTime: '09:00',
             endTime: '10:00',
             color: colors[0],
+            projectId: undefined,
         });
     }
   }, [existingTask, reset, isOpen]);
@@ -89,25 +96,47 @@ export default function AddTaskDialog({ isOpen, setIsOpen, existingTask }: AddTa
         <DialogHeader>
           <DialogTitle>{existingTask ? 'Edit Task' : 'Add a New Task'}</DialogTitle>
           <DialogDescription>
-            Fill in the details below to add a new task to your study plan.
+            Fill in the details below to plan your study session.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="name">Task Name</Label>
             <Input id="name" {...register('name')} />
-            {errors.name && <p className="text-red-500 text-sm">{errors.name.message}</p>}
+            {errors.name && <p className="text-destructive text-sm">{errors.name.message}</p>}
           </div>
+
+          <div className="space-y-2">
+              <Label htmlFor="projectId">Project (Optional)</Label>
+              <Controller
+                name="projectId"
+                control={control}
+                render={({ field }) => (
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <SelectTrigger id="projectId">
+                            <SelectValue placeholder="Link to a project" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="none">No Project</SelectItem>
+                            {projects.map(project => (
+                                <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                )}
+            />
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="startTime">Start Time</Label>
               <Input id="startTime" type="time" {...register('startTime')} />
-               {errors.startTime && <p className="text-red-500 text-sm">{errors.startTime.message}</p>}
+               {errors.startTime && <p className="text-destructive text-sm">{errors.startTime.message}</p>}
             </div>
             <div className="space-y-2">
               <Label htmlFor="endTime">End Time</Label>
               <Input id="endTime" type="time" {...register('endTime')} />
-              {errors.endTime && <p className="text-red-500 text-sm">{errors.endTime.message}</p>}
+              {errors.endTime && <p className="text-destructive text-sm">{errors.endTime.message}</p>}
             </div>
           </div>
           <div className="space-y-2">
@@ -124,6 +153,7 @@ export default function AddTaskDialog({ isOpen, setIsOpen, existingTask }: AddTa
                                 onClick={() => field.onChange(color)}
                                 className={`w-8 h-8 rounded-full border-2 ${field.value === color ? 'border-ring' : 'border-transparent'}`}
                                 style={{ backgroundColor: color }}
+                                aria-label={`Select color ${color}`}
                             />
                         ))}
                     </div>

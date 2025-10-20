@@ -4,8 +4,9 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { Button } from '../ui/button';
-import { PlusCircle, Edit, Trash2 } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, Folder } from 'lucide-react';
 import { useTasks } from '@/context/TasksContext';
+import { useProjects } from '@/context/ProjectsContext';
 import { type StudyTask } from '@/lib/data';
 import AddTaskDialog from './AddTaskDialog';
 import { cn } from '@/lib/utils';
@@ -24,6 +25,7 @@ const hours = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0')
 
 export default function StudyPlanner() {
   const { tasks, deleteTask } = useTasks();
+  const { projects } = useProjects();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState<StudyTask | null>(null);
@@ -41,6 +43,12 @@ export default function StudyPlanner() {
     const minutes = date.getHours() * 60 + date.getMinutes();
     return (minutes / (24 * 60)) * 100;
   }, []);
+
+  const getProjectName = useCallback((projectId?: string) => {
+    if (!projectId) return null;
+    const project = projects.find(p => p.id === projectId);
+    return project?.name;
+  }, [projects]);
 
   const currentTimePosition = useMemo(() => timeToPercentage(currentTime), [currentTime, timeToPercentage]);
 
@@ -97,15 +105,16 @@ export default function StudyPlanner() {
                 const end = new Date(`1970-01-01T${task.endTime}`).getTime();
                 
                 const progress = now > start && now < end ? ((now - start) / (end - start)) * 100 : (now >= end ? 100 : 0);
+                const projectName = getProjectName(task.projectId);
 
                 return (
                     <div
                         key={task.id}
-                        className="h-16 rounded-lg group"
+                        className="h-20 rounded-lg group"
                         style={{ marginLeft: `calc(${startPercent}% + 48px)`, width: `calc(${width}% - 1px)` }}
                     >
                         <div 
-                            className={cn("h-full w-full rounded-lg text-white p-2 flex flex-col justify-between relative overflow-hidden shadow-md", now >= end ? "opacity-60" : "")} 
+                            className={cn("h-full w-full rounded-lg text-white p-2 flex flex-col justify-between relative overflow-hidden shadow-md transition-opacity", now >= end ? "opacity-60" : "")} 
                             style={{ backgroundColor: task.color }}
                         >
                              <div 
@@ -113,11 +122,17 @@ export default function StudyPlanner() {
                                 style={{ width: `${progress}%` }}
                             />
                            <div className="relative z-10 flex justify-between items-start">
-                             <div className="flex-1">
+                             <div className="flex-1 overflow-hidden pr-2">
                                 <p className="font-bold text-sm truncate">{task.name}</p>
                                 <p className="text-xs opacity-90">{task.startTime} - {task.endTime}</p>
+                                {projectName && (
+                                    <div className="flex items-center gap-1 mt-1">
+                                        <Folder size={12} className="opacity-90" />
+                                        <p className="text-xs opacity-90 truncate">{projectName}</p>
+                                    </div>
+                                )}
                              </div>
-                             <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                             <div className="flex gap-1 opacity-20 group-hover:opacity-100 transition-opacity">
                                 <Button size="icon" variant="ghost" className="h-7 w-7 text-white hover:bg-white/20" onClick={() => handleEditTask(task)}><Edit size={16} /></Button>
                                 <Button size="icon" variant="ghost" className="h-7 w-7 text-white hover:bg-white/20" onClick={() => handleDeleteConfirm(task)}><Trash2 size={16} /></Button>
                              </div>
