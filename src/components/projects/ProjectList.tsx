@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import ProjectCard from './ProjectCard';
 import { Button } from '../ui/button';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -17,6 +17,22 @@ export default function ProjectList() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   
+  useEffect(() => {
+    const projectIdToHighlight = sessionStorage.getItem('highlightProject');
+    if (projectIdToHighlight) {
+        const element = document.getElementById(`project-card-${projectIdToHighlight}`);
+        if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            element.classList.add('ring-2', 'ring-primary', 'ring-offset-2');
+            setTimeout(() => {
+                element.classList.remove('ring-2', 'ring-primary', 'ring-offset-2');
+            }, 3000);
+        }
+        sessionStorage.removeItem('highlightProject');
+    }
+  }, [projects]);
+
+
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
   };

@@ -2,21 +2,32 @@
 'use client';
 
 import { useState, useRef, FormEvent, useEffect, ChangeEvent } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, Send, Paperclip, X } from 'lucide-react';
+import { Loader2, Send, Paperclip, X, ArrowRight } from 'lucide-react';
 import { Avatar, AvatarFallback } from '../ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 import { Label } from '../ui/label';
+import { Card, CardContent } from '../ui/card';
+import type { Project } from '@/lib/data';
+
+
+interface ForwardedProjectInfo {
+    id: string;
+    name: string;
+    description: string;
+}
 
 interface Message {
   id: string;
   username: string;
   text: string;
   image?: string;
+  forwardedProject?: ForwardedProjectInfo;
 }
 
 export default function AIChat() {
@@ -32,6 +43,7 @@ export default function AIChat() {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const router = useRouter();
 
   useEffect(() => {
     const savedUsername = localStorage.getItem('chatUsername');
@@ -46,10 +58,22 @@ export default function AIChat() {
         setMessages(JSON.parse(savedMessages));
     }
     
-    const forwardedMessage = sessionStorage.getItem('forwardedMessage');
-    if (forwardedMessage) {
-        setInput(forwardedMessage);
-        sessionStorage.removeItem('forwardedMessage');
+    const forwardedProjectRaw = sessionStorage.getItem('forwardedProject');
+    if (forwardedProjectRaw) {
+        try {
+            const project: ForwardedProjectInfo = JSON.parse(forwardedProjectRaw);
+            const userMessage: Message = {
+                id: `msg-${Date.now()}`,
+                username: savedUsername || 'User',
+                text: `Let's discuss the project: ${project.name}`,
+                forwardedProject: project,
+            };
+            setMessages((prev) => [...prev, userMessage]);
+        } catch (e) {
+            console.error("Failed to parse forwarded project", e);
+        } finally {
+             sessionStorage.removeItem('forwardedProject');
+        }
     }
 
     setIsInitialized(true);
@@ -100,13 +124,19 @@ export default function AIChat() {
 
   const handleSetUsername = () => {
     if (usernameInput.trim()) {
-        setUsername(usernameInput.trim());
-        localStorage.setItem('chatUsername', usernameInput.trim());
+        const newUsername = usernameInput.trim();
+        setUsername(newUsername);
+        localStorage.setItem('chatUsername', newUsername);
         setIsUsernameModalOpen(false);
-        toast({ title: `Welcome, ${usernameInput.trim()}!`});
+        toast({ title: `Welcome, ${newUsername}!`});
     } else {
         toast({ variant: 'destructive', title: 'Username required', description: 'Please enter a username to join the chat.' });
     }
+  }
+
+  const handleViewProject = (projectId: string) => {
+    sessionStorage.setItem('highlightProject', projectId);
+    router.push('/projects');
   }
 
   return (
@@ -132,7 +162,20 @@ export default function AIChat() {
                         <Image src={message.image} alt="User upload" layout="fill" objectFit="cover" />
                     </div>
                     )}
-                    <p className="text-sm whitespace-pre-wrap">{message.text}</p>
+                    {message.forwardedProject ? (
+                        <Card className="bg-primary/10 border-primary/50 my-2">
+                            <CardContent className="p-3 space-y-2">
+                                <p className="font-semibold text-primary">{message.forwardedProject.name}</p>
+                                <p className="text-sm text-foreground/80 line-clamp-2">{message.forwardedProject.description}</p>
+                                {message.text && <p className="text-sm pt-2 border-t border-primary/20">{message.text}</p>}
+                                <Button size="sm" className="w-full mt-2" onClick={() => handleViewProject(message.forwardedProject!.id)}>
+                                    View Project <ArrowRight className="ml-2 h-4 w-4" />
+                                </Button>
+                            </CardContent>
+                        </Card>
+                    ) : (
+                         <p className="text-sm whitespace-pre-wrap">{message.text}</p>
+                    )}
                 </div>
               </div>
             </div>

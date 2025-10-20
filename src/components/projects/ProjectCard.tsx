@@ -21,14 +21,18 @@ export default function ProjectCard({ project, onCommentClick }: ProjectCardProp
   const router = useRouter();
 
   const handleForwardToChat = () => {
-    const chatMessage = `Let's discuss the project: ${project.name}\n\nDescription: ${project.description}`;
-    sessionStorage.setItem('forwardedMessage', chatMessage);
+    const projectInfo = {
+      id: project.id,
+      name: project.name,
+      description: project.description,
+    };
+    sessionStorage.setItem('forwardedProject', JSON.stringify(projectInfo));
     router.push('/chat');
   }
 
   return (
     <>
-      <Card className="flex flex-col h-full overflow-hidden transition-all duration-300 hover:shadow-xl group">
+      <Card id={`project-card-${project.id}`} className="flex flex-col h-full overflow-hidden transition-all duration-300 hover:shadow-xl group">
         <CardHeader className="p-0 relative">
           <div 
             className="relative w-full aspect-[3/2] bg-muted/20 cursor-pointer"
