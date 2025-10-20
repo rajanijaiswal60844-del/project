@@ -42,7 +42,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-background">
       <TopNav onLogout={handleLogout} />
-      <main className="flex-1 p-4 md:p-8 pt-20">
+      <main className="p-4 md:p-8 pt-20">
           {children}
       </main>
     </div>
