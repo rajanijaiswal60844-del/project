@@ -5,6 +5,8 @@ import React, { createContext, useContext, ReactNode } from 'react';
 import { type Project, type Label } from '@/lib/data';
 import { useCollection, useFirestore, useUser, useMemoFirebase } from '@/firebase';
 import { collection, doc, setDoc, addDoc, deleteDoc, serverTimestamp, query, orderBy } from 'firebase/firestore';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 interface ProjectsContextType {
   projects: Project[];
@@ -39,37 +41,76 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
   const { data: labels, isLoading: isLabelsLoading } = useCollection<Label>(labelsQuery);
 
 
-  const addProject = async (projectData: Omit<Project, 'id' | 'createdAt'>) => {
+  const addProject = (projectData: Omit<Project, 'id' | 'createdAt'>) => {
     if (!user) return;
     const projectsCol = collection(firestore, 'projects');
-    await addDoc(projectsCol, {
+    const data = {
       ...projectData,
       createdAt: serverTimestamp(),
-    });
+    };
+    addDoc(projectsCol, data)
+      .catch((serverError) => {
+        const permissionError = new FirestorePermissionError({
+          path: projectsCol.path,
+          operation: 'create',
+          requestResourceData: data,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+      });
   };
 
-  const updateProject = async (updatedProject: Project) => {
+  const updateProject = (updatedProject: Project) => {
     if (!user) return;
     const projectRef = doc(firestore, 'projects', updatedProject.id);
-    await setDoc(projectRef, updatedProject, { merge: true });
+    setDoc(projectRef, updatedProject, { merge: true })
+      .catch((serverError) => {
+        const permissionError = new FirestorePermissionError({
+          path: projectRef.path,
+          operation: 'update',
+          requestResourceData: updatedProject,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+      });
   }
 
-  const deleteProject = async (projectId: string) => {
+  const deleteProject = (projectId: string) => {
     if (!user) return;
     const projectRef = doc(firestore, 'projects', projectId);
-    await deleteDoc(projectRef);
+    deleteDoc(projectRef)
+      .catch((serverError) => {
+        const permissionError = new FirestorePermissionError({
+          path: projectRef.path,
+          operation: 'delete',
+        });
+        errorEmitter.emit('permission-error', permissionError);
+      });
   }
 
-  const addLabel = async (labelData: Omit<Label, 'id'>) => {
+  const addLabel = (labelData: Omit<Label, 'id'>) => {
     if (!user) return;
     const labelsCol = collection(firestore, 'labels');
-    await addDoc(labelsCol, labelData);
+    addDoc(labelsCol, labelData)
+      .catch((serverError) => {
+        const permissionError = new FirestorePermissionError({
+          path: labelsCol.path,
+          operation: 'create',
+          requestResourceData: labelData,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+      });
   }
 
-  const deleteLabel = async (labelId: string) => {
+  const deleteLabel = (labelId: string) => {
     if (!user) return;
     const labelRef = doc(firestore, 'labels', labelId);
-    await deleteDoc(labelRef);
+    deleteDoc(labelRef)
+      .catch((serverError) => {
+        const permissionError = new FirestorePermissionError({
+          path: labelRef.path,
+          operation: 'delete',
+        });
+        errorEmitter.emit('permission-error', permissionError);
+      });
 
     // This part is tricky without transactions on the client-side. 
     // A cloud function would be better, but for now, we remove the label from projects one by one.
@@ -86,7 +127,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     return collection(firestore, 'projects', projectId, 'comments');
   }
 
-  const updateProjectComments = async (projectId: string, comments: any) => {
+  const updateProjectComments = (projectId: string, comments: any) => {
       // This function is a bit of a placeholder. In a real app, you'd add one comment at a time.
       if (!user) return;
       console.log("Updating comments is not fully implemented in context. Handle single comment adds.", projectId, comments);

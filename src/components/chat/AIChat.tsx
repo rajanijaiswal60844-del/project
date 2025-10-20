@@ -13,7 +13,7 @@ import Image from 'next/image';
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 import { Label } from '../ui/label';
 import { Card, CardContent } from '../ui/card';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { collection, addDoc, serverTimestamp, query, orderBy, Timestamp } from 'firebase/firestore';
 
 
@@ -63,17 +63,26 @@ export default function AIChat() {
     }
     
     // Handle forwarded project from sessionStorage
-    const handleForwardedProject = async () => {
+    const handleForwardedProject = () => {
         const forwardedProjectRaw = sessionStorage.getItem('forwardedProject');
         if (forwardedProjectRaw && firestore) {
             try {
                 const project: ForwardedProjectInfo = JSON.parse(forwardedProjectRaw);
                 const messagesCol = collection(firestore, 'chatMessages');
-                await addDoc(messagesCol, {
+                const messageData = {
                     username: savedUsername || 'User',
                     text: `Let's discuss the project: ${project.name}`,
                     forwardedProject: project,
                     timestamp: serverTimestamp(),
+                };
+                addDoc(messagesCol, messageData)
+                .catch((serverError) => {
+                    const permissionError = new FirestorePermissionError({
+                      path: messagesCol.path,
+                      operation: 'create',
+                      requestResourceData: messageData,
+                    });
+                    errorEmitter.emit('permission-error', permissionError);
                 });
             } catch (e) {
                 console.error("Failed to parse or save forwarded project", e);
@@ -112,7 +121,7 @@ export default function AIChat() {
 
     const messagesCol = collection(firestore, 'chatMessages');
 
-    const messageData: Partial<Message> & { timestamp: any } = {
+    const messageData: any = {
         username,
         text: input,
         timestamp: serverTimestamp(),
@@ -126,18 +135,22 @@ export default function AIChat() {
     setImage(null);
     setIsLoading(true);
 
-    try {
-        await addDoc(messagesCol, messageData);
-    } catch(err) {
-        console.error("Error sending message:", err);
-        toast({
-            variant: "destructive",
-            title: "Send Error",
-            description: "Could not send message."
+    addDoc(messagesCol, messageData)
+        .catch((serverError) => {
+            const permissionError = new FirestorePermissionError({
+              path: messagesCol.path,
+              operation: 'create',
+              requestResourceData: messageData,
+            });
+            errorEmitter.emit('permission-error', permissionError);
+             toast({
+                variant: "destructive",
+                title: "Send Error",
+                description: "Could not send message."
+            });
+        }).finally(() => {
+            setIsLoading(false);
         });
-    } finally {
-        setIsLoading(false);
-    }
   };
 
   const handleSetUsername = () => {

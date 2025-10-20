@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useRef, ChangeEvent } from 'react';
-import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useUser, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { collection, addDoc, serverTimestamp, deleteDoc, doc } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -51,8 +51,9 @@ export default function MyFilesPage() {
       reader.onload = async (e) => {
         try {
           const dataUrl = e.target?.result as string;
-          const filesCol = collection(firestore, 'users', user.uid, 'files');
           
+          // 1. Save to user's private collection
+          const filesCol = collection(firestore, 'users', user.uid, 'files');
           const fileDoc = {
             fileName: file.name,
             fileType: file.type,
@@ -61,19 +62,33 @@ export default function MyFilesPage() {
             downloadUrl: dataUrl,
           };
           
-          // Save to user's private collection
-          await addDoc(filesCol, fileDoc);
+          addDoc(filesCol, fileDoc).catch((serverError) => {
+              const permissionError = new FirestorePermissionError({
+                  path: filesCol.path,
+                  operation: 'create',
+                  requestResourceData: fileDoc,
+              });
+              errorEmitter.emit('permission-error', permissionError);
+          });
 
-          // If it's an image, also save to the global collection
+          // 2. If it's an image, also save to the global collection
           if (file.type.startsWith('image/')) {
             const userPhotosCol = collection(firestore, 'userPhotos');
             const username = localStorage.getItem('chatUsername') || 'Anonymous';
-            await addDoc(userPhotosCol, {
+            const userPhotoDoc = {
                 userId: user.uid,
                 userName: username,
                 fileName: file.name,
                 downloadUrl: dataUrl,
                 uploadDate: serverTimestamp(),
+            };
+            addDoc(userPhotosCol, userPhotoDoc).catch((serverError) => {
+                const permissionError = new FirestorePermissionError({
+                  path: userPhotosCol.path,
+                  operation: 'create',
+                  requestResourceData: userPhotoDoc,
+                });
+                errorEmitter.emit('permission-error', permissionError);
             });
           }
 
@@ -111,24 +126,29 @@ export default function MyFilesPage() {
   const handleDeleteFile = async () => {
     if (fileToDelete && user) {
         const fileRef = doc(firestore, 'users', user.uid, 'files', fileToDelete.id);
-        try {
-            await deleteDoc(fileRef);
+        
+        deleteDoc(fileRef).then(() => {
             toast({
                 title: 'File Deleted',
                 description: `${fileToDelete.fileName} has been removed.`,
             });
             // Note: This does not delete from the global `userPhotos` collection.
             // A cloud function would be needed for more robust synchronization.
-        } catch (error) {
-             toast({
+        }).catch(error => {
+            const permissionError = new FirestorePermissionError({
+              path: fileRef.path,
+              operation: 'delete',
+            });
+            errorEmitter.emit('permission-error', permissionError);
+            toast({
                 variant: 'destructive',
                 title: 'Deletion Failed',
                 description: 'Could not delete the file.',
             });
              console.error('Error deleting file:', error);
-        } finally {
+        }).finally(() => {
             setFileToDelete(null);
-        }
+        });
     }
   }
 

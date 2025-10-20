@@ -10,7 +10,7 @@ import type { Project, Comment } from "@/lib/data";
 import { Send, MessageSquare, Loader2 } from "lucide-react";
 import { Avatar, AvatarFallback } from "../ui/avatar";
 import { formatDistanceToNow } from 'date-fns';
-import { useCollection, useFirestore, useUser, useMemoFirebase } from "@/firebase";
+import { useCollection, useFirestore, useUser, useMemoFirebase, errorEmitter, FirestorePermissionError } from "@/firebase";
 import { collection, addDoc, serverTimestamp, query, orderBy, Timestamp } from "firebase/firestore";
 
 interface ProjectCommentsDialogProps {
@@ -54,12 +54,21 @@ export default function ProjectCommentsDialog({ isOpen, setIsOpen, project }: Pr
       if (newComment.trim() === '' || !project || !user) return;
 
       const commentsCol = collection(firestore, 'projects', project.id, 'comments');
-      
-      try {
-        await addDoc(commentsCol, {
+      const commentData = {
             text: newComment,
             author: username,
             timestamp: serverTimestamp(),
+        };
+      
+      try {
+        await addDoc(commentsCol, commentData)
+        .catch((serverError) => {
+            const permissionError = new FirestorePermissionError({
+              path: commentsCol.path,
+              operation: 'create',
+              requestResourceData: commentData,
+            });
+            errorEmitter.emit('permission-error', permissionError);
         });
         setNewComment('');
       } catch (error) {
