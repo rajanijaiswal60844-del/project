@@ -49,11 +49,11 @@ const HangmanDrawing = ({ numberOfGuesses }: { numberOfGuesses: number }) => {
     const bodyParts = [head, body, rightArm, leftArm, rightLeg, leftLeg];
 
     return (
-        <div className="relative h-80 w-64">
+        <div className="relative">
             <div className="h-12 w-1 bg-foreground absolute top-0 right-0"/>
-            <div className="h-1 w-40 bg-foreground absolute top-0 right-0"/>
-            <div className="h-full w-1 bg-foreground absolute top-0 left-20" />
-            <div className="h-1 w-full bg-foreground" />
+            <div className="h-1 w-[160px] bg-foreground ml-[120px]"/>
+            <div className="h-[400px] w-1 bg-foreground ml-[120px]" />
+            <div className="h-1 w-[250px] bg-foreground" />
             {bodyParts.slice(0, numberOfGuesses)}
         </div>
     )

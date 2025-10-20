@@ -1,8 +1,9 @@
+
 'use client';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, FolderKanban, MessageCircle, LogOut, Shield, Puzzle, Hangman } from 'lucide-react';
+import { Home, FolderKanban, MessageCircle, LogOut, Shield, Puzzle, Gamepad2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
@@ -11,7 +12,7 @@ const navItems = [
   { href: '/projects', label: 'Projects', icon: FolderKanban },
   { href: '/chat', label: 'Chat', icon: MessageCircle },
   { href: '/tictactoe', label: 'Tic-Tac-Toe', icon: Puzzle },
-  { href: '/hangman', label: 'Hangman', icon: Hangman },
+  { href: '/hangman', label: 'Hangman', icon: Gamepad2 },
 ];
 
 const adminNavItems = [
