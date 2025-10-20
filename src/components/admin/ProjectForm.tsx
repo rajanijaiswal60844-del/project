@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { Project } from "@/lib/data";
 import Image from "next/image";
 import { Upload, X } from "lucide-react";
+import { Card } from "../ui/card";
 
 interface ProjectFormProps {
     isOpen: boolean;
