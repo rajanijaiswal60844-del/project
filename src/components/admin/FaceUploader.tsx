@@ -1,10 +1,10 @@
 
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, ChangeEvent } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "../ui/card";
 import { Button } from "../ui/button";
-import { Camera, RefreshCcw, UserPlus, Loader2, UserCheck, Clock } from "lucide-react";
+import { Camera, RefreshCcw, UserPlus, Loader2, UserCheck, Clock, Upload } from "lucide-react";
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -28,19 +28,24 @@ export default function FaceUploader() {
     const [lastAccessTime, setLastAccessTime] = useState<string | null>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
     const { toast } = useToast();
     
     useEffect(() => {
         const getCameraPermission = async () => {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                if (videoRef.current) {
-                    videoRef.current.srcObject = stream;
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                    if (videoRef.current) {
+                        videoRef.current.srcObject = stream;
+                    }
+                    setHasCameraPermission(true);
+                } catch (error) {
+                    console.error('Error accessing camera:', error);
+                    setHasCameraPermission(false);
                 }
-                setHasCameraPermission(true);
-            } catch (error) {
-                console.error('Error accessing camera:', error);
-                setHasCameraPermission(false);
+            } else {
+                 setHasCameraPermission(false);
             }
         };
         getCameraPermission();
@@ -80,6 +85,31 @@ export default function FaceUploader() {
         }
     }, []);
 
+    const handleUploadClick = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const dataUrl = e.target?.result as string;
+                setCapturedImage(dataUrl);
+            };
+            reader.onerror = () => {
+                toast({
+                    variant: 'destructive',
+                    title: 'File Error',
+                    description: 'Could not read the selected file.'
+                });
+            }
+            reader.readAsDataURL(file);
+        }
+        // Reset file input to allow re-uploading the same file
+        event.target.value = '';
+    };
+
     const handleSaveUser = () => {
         if (capturedImage) {
             setShowSaveConfirm(true);
@@ -87,7 +117,7 @@ export default function FaceUploader() {
             toast({
                 variant: 'destructive',
                 title: 'No Image Captured',
-                description: 'Please capture an image before saving.',
+                description: 'Please capture or upload an image before saving.',
             });
         }
     };
@@ -119,19 +149,20 @@ export default function FaceUploader() {
                 <Card className="flex flex-col">
                     <CardHeader>
                         <CardTitle className="font-headline text-2xl">User Identity Validation</CardTitle>
-                        <CardDescription>Capture and save a face photo for the authorized user.</CardDescription>
+                        <CardDescription>Capture or upload a face photo for the authorized user.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4 flex-1">
                         <div className="aspect-video w-full rounded-lg bg-muted flex flex-col items-center justify-center gap-2 text-muted-foreground overflow-hidden relative">
                             {hasCameraPermission === null && <Loader2 className="w-12 h-12 animate-spin" />}
-                            {hasCameraPermission === false && <p>Camera access denied.</p>}
+                            {hasCameraPermission === false && !capturedImage && <p>Camera access denied.</p>}
                             
-                            <video ref={videoRef} className={`w-full h-full object-cover ${capturedImage ? 'hidden' : 'block'}`} autoPlay muted playsInline />
+                            <video ref={videoRef} className={`w-full h-full object-cover ${capturedImage || hasCameraPermission === false ? 'hidden' : 'block'}`} autoPlay muted playsInline />
 
                             {capturedImage && (
                                 <Image src={capturedImage} alt="Captured face" fill className="object-cover" />
                             )}
                              <canvas ref={canvasRef} className="hidden"></canvas>
+                             <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" />
                         </div>
                     </CardContent>
                     <CardFooter className="flex justify-end gap-2">
@@ -141,10 +172,16 @@ export default function FaceUploader() {
                                 Retake
                             </Button>
                         ) : (
-                            <Button onClick={handleCapture} disabled={!hasCameraPermission}>
-                                <Camera className="mr-2 h-4 w-4" />
-                                Capture
-                            </Button>
+                            <>
+                                <Button onClick={handleCapture} disabled={!hasCameraPermission}>
+                                    <Camera className="mr-2 h-4 w-4" />
+                                    Capture
+                                </Button>
+                                <Button variant="outline" onClick={handleUploadClick}>
+                                    <Upload className="mr-2 h-4 w-4" />
+                                    Upload
+                                </Button>
+                            </>
                         )}
                        
                         <Button onClick={handleSaveUser} disabled={!capturedImage || isSaving}>
@@ -167,7 +204,7 @@ export default function FaceUploader() {
                         {lastAccessImage ? (
                             <div className="space-y-4">
                                 <div className="relative aspect-video w-full rounded-lg overflow-hidden border">
-                                    <Image src={lastAccessImage} alt="Last access user" layout="fill" objectFit="cover" />
+                                    <Image src={lastAccessImage} alt="Last access user" fill objectFit="cover" />
                                 </div>
                                 {lastAccessTime && (
                                     <div className="text-sm text-muted-foreground flex items-center justify-center gap-2">
