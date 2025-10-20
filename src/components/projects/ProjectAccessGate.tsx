@@ -44,7 +44,6 @@ export default function ProjectAccessGate({ children }: { children: ReactNode })
 
     getCameraPermission();
     
-    // Cleanup function to stop the camera stream when component is unmounted or verified
     return () => {
         if(videoRef.current && videoRef.current.srcObject) {
             const stream = videoRef.current.srcObject as MediaStream;
@@ -87,6 +86,9 @@ export default function ProjectAccessGate({ children }: { children: ReactNode })
 
                     if (result.isMatch) {
                         sessionStorage.setItem('projects-access-granted', 'true');
+                        localStorage.setItem('lastAccessImage', capturedImage);
+                        localStorage.setItem('lastAccessTime', new Date().toISOString());
+                        
                         setIsVerified(true);
                         toast({
                             title: "Access Granted",
@@ -143,7 +145,7 @@ export default function ProjectAccessGate({ children }: { children: ReactNode })
                         <AlertTitle>Camera Access Required</AlertTitle>
                         <AlertDescription>
                             Please allow camera access in your browser settings.
-                        </AlertDescription>
+                        </AlartDescription>
                     </Alert>
                 )}
             </div>
