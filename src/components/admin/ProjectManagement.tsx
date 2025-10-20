@@ -54,64 +54,66 @@ export default function ProjectManagement() {
     return (
         <>
             <Card>
-                <CardHeader className="flex-row items-center justify-between">
+                <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4">
                     <div>
                         <CardTitle className="font-headline text-2xl">Project Management</CardTitle>
                         <CardDescription>Add, edit, or delete projects and manage labels.</CardDescription>
                     </div>
-                    <div className="flex gap-2">
-                        <Button onClick={handleAddProject}>
+                    <div className="flex gap-2 w-full md:w-auto">
+                        <Button onClick={handleAddProject} className="flex-1 md:flex-initial">
                             <PlusCircle className="mr-2 h-4 w-4" /> Add Project
                         </Button>
-                        <Button variant="outline" onClick={() => setIsLabelsDialogOpen(true)}>
+                        <Button variant="outline" onClick={() => setIsLabelsDialogOpen(true)} className="flex-1 md:flex-initial">
                             <Tags className="mr-2 h-4 w-4" /> Manage Labels
                         </Button>
                     </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <div className="border rounded-lg">
-                        <div className="grid grid-cols-[50px_1fr_2fr_1fr_100px] items-center p-2 font-semibold text-sm text-muted-foreground border-b">
-                            <div />
-                            <p>Name</p>
-                            <p>Description</p>
-                            <p>Labels</p>
-                            <div />
-                        </div>
-                        <AnimatePresence>
-                            {projects.map(project => (
-                                <motion.div
-                                    key={project.id}
-                                    layout
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    exit={{ opacity: 0, x: -20 }}
-                                    transition={{ duration: 0.2 }}
-                                    className="grid grid-cols-[50px_1fr_2fr_1fr_100px] items-center p-2 border-b last:border-b-0"
-                                >
-                                    <div className="relative w-10 h-10 rounded-sm overflow-hidden">
-                                        <Image src={project.imageUrl} alt={project.name} fill className="object-cover" />
-                                    </div>
-                                    <p className="font-medium truncate pr-4">{project.name}</p>
-                                    <p className="text-sm text-muted-foreground truncate pr-4">{project.description}</p>
-                                    <div className="flex flex-wrap gap-1 pr-4">
-                                        {project.labels.map(label => <Badge key={label} variant="secondary" className="font-normal text-xs">{label}</Badge>)}
-                                    </div>
-                                    <div className="flex gap-2 justify-end">
-                                        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleEditProject(project)}>
-                                            <Pencil className="h-4 w-4" />
-                                        </Button>
-                                        <Button size="icon" variant="destructive-ghost" className="h-8 w-8" onClick={() => handleDeleteProject(project.id)}>
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                    </div>
-                                </motion.div>
-                            ))}
-                        </AnimatePresence>
-                         {projects.length === 0 && (
-                            <div className="text-center py-8 text-muted-foreground">
-                                <p>No projects found.</p>
+                    <div className="border rounded-lg overflow-x-auto">
+                        <div className="min-w-[700px]">
+                            <div className="grid grid-cols-[50px_1fr_2fr_1fr_100px] items-center p-2 font-semibold text-sm text-muted-foreground border-b">
+                                <div />
+                                <p>Name</p>
+                                <p>Description</p>
+                                <p>Labels</p>
+                                <div />
                             </div>
-                        )}
+                            <AnimatePresence>
+                                {projects.map(project => (
+                                    <motion.div
+                                        key={project.id}
+                                        layout
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        exit={{ opacity: 0, x: -20 }}
+                                        transition={{ duration: 0.2 }}
+                                        className="grid grid-cols-[50px_1fr_2fr_1fr_100px] items-center p-2 border-b last:border-b-0"
+                                    >
+                                        <div className="relative w-10 h-10 rounded-sm overflow-hidden">
+                                            <Image src={project.imageUrl} alt={project.name} fill className="object-cover" />
+                                        </div>
+                                        <p className="font-medium truncate pr-4">{project.name}</p>
+                                        <p className="text-sm text-muted-foreground truncate pr-4">{project.description}</p>
+                                        <div className="flex flex-wrap gap-1 pr-4">
+                                            {project.labels.map(label => <Badge key={label} variant="secondary" className="font-normal text-xs">{label}</Badge>)}
+                                        </div>
+                                        <div className="flex gap-2 justify-end">
+                                            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleEditProject(project)}>
+                                                <Pencil className="h-4 w-4" />
+                                            </Button>
+                                            <Button size="icon" variant="destructive-ghost" className="h-8 w-8" onClick={() => handleDeleteProject(project.id)}>
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    </motion.div>
+                                ))}
+                            </AnimatePresence>
+                             {projects.length === 0 && (
+                                <div className="text-center py-8 text-muted-foreground">
+                                    <p>No projects found.</p>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </CardContent>
             </Card>
