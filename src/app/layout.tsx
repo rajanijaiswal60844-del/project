@@ -3,6 +3,7 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import ClientLayout from './client-layout';
 import { ProjectsProvider } from '@/context/ProjectsContext';
+import { FirebaseClientProvider } from '@/firebase';
 
 export const metadata: Metadata = {
   title: 'FaceFilter AI',
@@ -23,9 +24,11 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased">
-        <ProjectsProvider>
-            <ClientLayout>{children}</ClientLayout>
-        </ProjectsProvider>
+        <FirebaseClientProvider>
+          <ProjectsProvider>
+              <ClientLayout>{children}</ClientLayout>
+          </ProjectsProvider>
+        </FirebaseClientProvider>
         <Toaster />
       </body>
     </html>
