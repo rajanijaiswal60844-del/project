@@ -19,9 +19,6 @@ export default function Home() {
         <Button size="lg" onClick={() => router.push('/tictactoe')}>
             Play Tic-Tac-Toe
         </Button>
-        <Button size="lg" onClick={() => router.push('/hangman')} variant="outline">
-            Play Hangman
-        </Button>
       </div>
     </div>
   );
