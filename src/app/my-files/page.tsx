@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef, ChangeEvent } from 'react';
@@ -5,7 +6,6 @@ import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/firebas
 import { collection, addDoc, serverTimestamp, deleteDoc, doc } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Upload, Trash2, File as FileIcon, Loader2 } from 'lucide-react';
 import Image from 'next/image';
@@ -20,6 +20,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import type { UserFile } from '@/lib/data';
+import MyFilesGate from '@/components/my-files/MyFilesGate';
+import ImagePreviewDialog from '@/components/common/ImagePreviewDialog';
 
 export default function MyFilesPage() {
   const { user } = useUser();
@@ -28,6 +30,7 @@ export default function MyFilesPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [fileToDelete, setFileToDelete] = useState<UserFile | null>(null);
+  const [imageToPreview, setImageToPreview] = useState<string | null>(null);
 
   const filesQuery = useMemoFirebase(
     () => (user ? collection(firestore, 'users', user.uid, 'files') : null),
@@ -82,7 +85,6 @@ export default function MyFilesPage() {
       }
       reader.readAsDataURL(file);
     }
-    // Clear the input value to allow re-uploading the same file
     if(event.target) {
         event.target.value = '';
     }
@@ -112,7 +114,7 @@ export default function MyFilesPage() {
 
 
   return (
-    <>
+    <MyFilesGate>
       <div className="space-y-8">
         <div>
           <h1 className="text-3xl md:text-4xl font-headline font-bold text-foreground">My Files</h1>
@@ -162,7 +164,10 @@ export default function MyFilesPage() {
                                 <div key={file.id} className="grid grid-cols-[60px_1fr_100px_120px_50px] items-center p-2 gap-4 hover:bg-muted/50">
                                     <div className="flex items-center justify-center">
                                        {file.fileType.startsWith('image/') ? (
-                                            <div className="relative w-10 h-10 rounded-md overflow-hidden">
+                                            <div 
+                                                className="relative w-10 h-10 rounded-md overflow-hidden cursor-pointer"
+                                                onClick={() => setImageToPreview(file.downloadUrl)}
+                                            >
                                                 <Image src={file.downloadUrl} alt={file.fileName} fill className="object-cover" />
                                             </div>
                                        ) : (
@@ -208,6 +213,13 @@ export default function MyFilesPage() {
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>
-    </>
+
+        <ImagePreviewDialog
+            isOpen={!!imageToPreview}
+            onOpenChange={(open) => !open && setImageToPreview(null)}
+            imageUrl={imageToPreview}
+            altText="File Preview"
+        />
+    </MyFilesGate>
   );
 }

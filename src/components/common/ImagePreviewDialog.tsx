@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import Image from "next/image";
 import { Button } from "../ui/button";
-import { Download } from "lucide-react";
+import { Download, X } from "lucide-react";
 
 interface ImagePreviewDialogProps {
   isOpen: boolean;
@@ -28,7 +28,10 @@ export default function ImagePreviewDialog({ isOpen, onOpenChange, imageUrl, alt
         link.href = imageUrl;
         // Use a generic name or derive from altText
         const fileName = altText.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-        link.download = `${fileName}.jpg`;
+        // Attempt to get file extension from data URL if possible
+        const extensionMatch = imageUrl.match(/data:image\/([a-zA-Z]+);/);
+        const extension = extensionMatch ? extensionMatch[1] : 'png';
+        link.download = `${fileName || 'download'}.${extension}`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -37,11 +40,11 @@ export default function ImagePreviewDialog({ isOpen, onOpenChange, imageUrl, alt
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl w-full p-2">
-        <DialogHeader>
-            <DialogTitle className="sr-only">{altText}</DialogTitle>
+      <DialogContent className="max-w-5xl w-full p-2 h-screen sm:h-auto">
+        <DialogHeader className="sr-only">
+            <DialogTitle>{altText}</DialogTitle>
         </DialogHeader>
-        <div className="relative w-full" style={{ paddingTop: '56.25%' /* 16:9 aspect ratio */ }}>
+        <div className="relative flex-1 w-full h-full">
           <Image
             src={imageUrl}
             alt={altText}
@@ -49,7 +52,11 @@ export default function ImagePreviewDialog({ isOpen, onOpenChange, imageUrl, alt
             className="object-contain"
           />
         </div>
-         <DialogFooter className="sm:justify-end gap-2 p-2">
+         <DialogFooter className="sm:justify-end gap-2 p-2 absolute sm:relative bottom-4 right-4 sm:bottom-auto sm:right-auto bg-background/80 sm:bg-transparent rounded-lg">
+             <Button variant="outline" onClick={() => onOpenChange(false)}>
+                <X className="mr-2 h-4 w-4" />
+                Close
+            </Button>
             <Button onClick={handleDownload}>
                 <Download className="mr-2 h-4 w-4" />
                 Download
