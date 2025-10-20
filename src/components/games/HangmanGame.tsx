@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -23,37 +24,37 @@ const MAX_INCORRECT_GUESSES = 6;
 
 const HangmanDrawing = ({ numberOfGuesses }: { numberOfGuesses: number }) => {
     const head = (
-        <div key="head" className="w-12 h-12 border-4 border-foreground rounded-full absolute top-[50px] right-[-22px]" />
+        <div key="head" className="w-10 h-10 sm:w-12 sm:h-12 border-4 border-foreground rounded-full absolute top-[40px] sm:top-[50px] right-[-18px] sm:right-[-22px]" />
     )
 
     const body = (
-        <div key="body" className="w-1 h-24 bg-foreground absolute top-[98px] right-0" />
+        <div key="body" className="w-1 h-20 sm:h-24 bg-foreground absolute top-[80px] sm:top-[98px] right-0" />
     )
 
     const rightArm = (
-        <div key="rightArm" className="w-20 h-1 bg-foreground absolute top-[130px] right-[-80px] rotate-[-30deg] origin-bottom-left" />
+        <div key="rightArm" className="w-16 sm:w-20 h-1 bg-foreground absolute top-[105px] sm:top-[130px] right-[-64px] sm:right-[-80px] rotate-[-30deg] origin-bottom-left" />
     )
     
     const leftArm = (
-         <div key="leftArm" className="w-20 h-1 bg-foreground absolute top-[130px] right-[1px] rotate-[30deg] origin-bottom-right" />
+         <div key="leftArm" className="w-16 sm:w-20 h-1 bg-foreground absolute top-[105px] sm:top-[130px] right-[1px] rotate-[30deg] origin-bottom-right" />
     )
 
     const rightLeg = (
-        <div key="rightLeg" className="w-24 h-1 bg-foreground absolute top-[215px] right-[-92px] rotate-[60deg] origin-bottom-left" />
+        <div key="rightLeg" className="w-20 sm:w-24 h-1 bg-foreground absolute top-[175px] sm:top-[215px] right-[-76px] sm:right-[-92px] rotate-[60deg] origin-bottom-left" />
     )
 
     const leftLeg = (
-        <div key="leftLeg" className="w-24 h-1 bg-foreground absolute top-[215px] right-[-1px] rotate-[-60deg] origin-bottom-right" />
+        <div key="leftLeg" className="w-20 sm:w-24 h-1 bg-foreground absolute top-[175px] sm:top-[215px] right-[-1px] rotate-[-60deg] origin-bottom-right" />
     )
 
     const bodyParts = [head, body, rightArm, leftArm, rightLeg, leftLeg];
 
     return (
-        <div className="relative">
-            <div className="h-12 w-1 bg-foreground absolute top-0 right-0"/>
-            <div className="h-1 w-[160px] bg-foreground ml-[120px]"/>
-            <div className="h-[400px] w-1 bg-foreground ml-[120px]" />
-            <div className="h-1 w-[250px] bg-foreground" />
+        <div className="relative h-[250px] sm:h-auto">
+            <div className="h-10 sm:h-12 w-1 bg-foreground absolute top-0 right-0"/>
+            <div className="h-1 w-[120px] sm:w-[160px] bg-foreground ml-[90px] sm:ml-[120px]"/>
+            <div className="h-[280px] sm:h-[400px] w-1 bg-foreground ml-[90px] sm:ml-[120px]" />
+            <div className="h-1 w-[200px] sm:w-[250px] bg-foreground" />
             {bodyParts.slice(0, numberOfGuesses)}
         </div>
     )
@@ -119,9 +120,9 @@ export default function HangmanGame() {
       <CardContent className="flex flex-col items-center space-y-6">
         <HangmanDrawing numberOfGuesses={incorrectGuesses.length} />
         
-        <div className="flex gap-2 text-2xl sm:text-4xl font-mono uppercase font-bold">
+        <div className="flex gap-1 sm:gap-2 text-2xl sm:text-4xl font-mono uppercase font-bold">
             {wordToGuess.split("").map((letter, index) => (
-                <div key={index} className="border-b-4 border-foreground w-8 h-10 sm:w-12 sm:h-14 flex items-center justify-center">
+                <div key={index} className="border-b-4 border-foreground w-6 h-8 sm:w-12 sm:h-14 flex items-center justify-center">
                     <span className={cn('transition-opacity duration-300', guessedLetters.includes(letter) || isLoser ? 'opacity-100' : 'opacity-0')}>
                         {letter}
                     </span>
@@ -129,7 +130,7 @@ export default function HangmanGame() {
             ))}
         </div>
 
-        <div className="flex flex-wrap gap-2 justify-center max-w-full">
+        <div className="flex flex-wrap gap-1 sm:gap-2 justify-center max-w-full">
             {ALPHABET.map(key => {
                  const isActive = guessedLetters.includes(key);
                  const isIncorrect = incorrectGuesses.includes(key);
@@ -138,7 +139,7 @@ export default function HangmanGame() {
                         key={key}
                         size="icon"
                         variant={isActive && !isIncorrect ? "success" : (isIncorrect ? "destructive" : "outline")}
-                        className="h-10 w-10 sm:h-12 sm:w-12 text-lg font-bold"
+                        className="h-8 w-8 sm:h-12 sm:w-12 text-sm sm:text-lg font-bold"
                         onClick={() => addGuessedLetter(key)}
                         disabled={isActive || isWinner || isLoser}
                     >
