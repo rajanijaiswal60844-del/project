@@ -8,16 +8,6 @@ export type Project = {
   labels: string[];
 };
 
-export type StudyTask = {
-  id: string;
-  name: string;
-  startTime: string; // "HH:MM"
-  endTime: string;   // "HH:MM"
-  color: string;
-  projectId?: string; // Optional: Link to a project
-};
-
-
 export const labels: string[] = ["UI/UX", "Backend", "Frontend", "AI/ML", "Design"];
 
 export const initialProjects: Project[] = [
@@ -53,10 +43,4 @@ export const initialProjects: Project[] = [
     imageHint: "brain network",
     labels: ["AI/ML"],
   },
-];
-
-export const initialTasks: StudyTask[] = [
-    { id: 'task-1', name: 'Math Practice', startTime: '09:00', endTime: '10:30', color: 'hsl(var(--primary))', projectId: 'proj-4' },
-    { id: 'task-2', name: 'Chemistry Review', startTime: '11:00', endTime: '12:00', color: 'hsl(var(--accent))' },
-    { id: 'task-3', name: 'History Reading', startTime: '14:30', endTime: '16:00', color: 'hsl(var(--secondary))', projectId: 'proj-1' },
 ];

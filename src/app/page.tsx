@@ -22,9 +22,6 @@ export default function Home() {
         <Button size="lg" onClick={() => router.push('/memory-match')}>
             Play Memory Match
         </Button>
-        <Button size="lg" onClick={() => router.push('/planner')}>
-            Go to Planner
-        </Button>
       </div>
     </div>
   );
