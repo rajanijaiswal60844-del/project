@@ -12,7 +12,7 @@ export default function ChatPage() {
                 <div className="flex justify-center">
                     <TabsList>
                         <TabsTrigger value="ai">AI Chat</TabsTrigger>
-                        <TabsTrigger value="all">/login</TabsTrigger>
+                        <TabsTrigger value="all">User chat</TabsTrigger>
                     </TabsList>
                 </div>
                 <TabsContent value="ai" className="flex-1 h-full mt-4">
