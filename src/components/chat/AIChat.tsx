@@ -26,6 +26,7 @@ export default function AIChat() {
   const [username, setUsername] = useState<string | null>(null);
   const [usernameInput, setUsernameInput] = useState('');
   const [isUsernameModalOpen, setIsUsernameModalOpen] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -43,11 +44,14 @@ export default function AIChat() {
     if (savedMessages) {
         setMessages(JSON.parse(savedMessages));
     }
+    setIsInitialized(true);
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('chatMessages', JSON.stringify(messages));
-  }, [messages]);
+    if (isInitialized) {
+        localStorage.setItem('chatMessages', JSON.stringify(messages));
+    }
+  }, [messages, isInitialized]);
   
 
   useEffect(() => {
