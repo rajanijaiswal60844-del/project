@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, FolderKanban, MessageCircle, LogOut, Shield, Puzzle } from 'lucide-react';
+import { Home, FolderKanban, MessageCircle, LogOut, Shield, Puzzle, Hangman } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
@@ -10,7 +10,8 @@ const navItems = [
   { href: '/', label: 'Dashboard', icon: Home },
   { href: '/projects', label: 'Projects', icon: FolderKanban },
   { href: '/chat', label: 'Chat', icon: MessageCircle },
-  { href: '/tictactoe', label: 'Game', icon: Puzzle },
+  { href: '/tictactoe', label: 'Tic-Tac-Toe', icon: Puzzle },
+  { href: '/hangman', label: 'Hangman', icon: Hangman },
 ];
 
 const adminNavItems = [
@@ -77,7 +78,7 @@ export default function TopNav({ onLogout }: TopNavProps) {
       </TooltipProvider>
 
         {/* Mobile Nav */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-card border-t h-16 flex items-center justify-around">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-card border-t h-16 flex items-center justify-around overflow-x-auto">
          {navItems.map((item) => (
               <Button
                 key={item.label}
