@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useRef, useEffect, ReactNode } from 'react';
+import { useState, useRef, useEffect, ReactNode, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
@@ -17,19 +17,7 @@ export default function ProjectAccessGate({ children }: { children: ReactNode })
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  useEffect(() => {
-    const checkVerification = () => {
-      if (sessionStorage.getItem('projects-access-granted') === 'true') {
-        setIsVerified(true);
-      }
-    };
-    checkVerification();
-  }, []);
-
-  useEffect(() => {
-    if (isVerified) return;
-
-    const getCameraPermission = async () => {
+  const getCameraPermission = useCallback(async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: true });
         if (videoRef.current) {
@@ -40,9 +28,12 @@ export default function ProjectAccessGate({ children }: { children: ReactNode })
         console.error('Error accessing camera:', error);
         setHasCameraPermission(false);
       }
-    };
+    }, []);
 
-    getCameraPermission();
+  useEffect(() => {
+    if (!isVerified) {
+        getCameraPermission();
+    }
     
     return () => {
         if(videoRef.current && videoRef.current.srcObject) {
@@ -50,7 +41,7 @@ export default function ProjectAccessGate({ children }: { children: ReactNode })
             stream.getTracks().forEach(track => track.stop());
         }
     }
-  }, [isVerified]);
+  }, [isVerified, getCameraPermission]);
   
   const handleVerification = async () => {
      if (!hasCameraPermission) {
@@ -85,7 +76,6 @@ export default function ProjectAccessGate({ children }: { children: ReactNode })
                     });
 
                     if (result.isMatch) {
-                        sessionStorage.setItem('projects-access-granted', 'true');
                         localStorage.setItem('lastAccessImage', capturedImage);
                         localStorage.setItem('lastAccessTime', new Date().toISOString());
                         

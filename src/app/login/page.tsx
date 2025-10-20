@@ -1,7 +1,6 @@
 
 'use client';
 
-import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,12 +10,6 @@ import { useToast } from '@/hooks/use-toast';
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
-
-  useEffect(() => {
-    // Ensure user is logged out when they reach the login page
-    localStorage.removeItem('isLoggedIn');
-    sessionStorage.removeItem('projects-access-granted');
-  }, []);
 
   const handleLogin = () => {
     localStorage.setItem('isLoggedIn', 'true');
