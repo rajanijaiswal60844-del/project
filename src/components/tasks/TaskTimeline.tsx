@@ -1,3 +1,5 @@
+'use client';
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useProjects } from "@/context/ProjectsContext";
 import { useTasks } from "@/context/TasksContext";
