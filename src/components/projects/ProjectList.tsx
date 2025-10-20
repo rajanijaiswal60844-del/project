@@ -1,17 +1,80 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import ProjectCard from './ProjectCard';
 import { Button } from '../ui/button';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useProjects } from '@/context/ProjectsContext';
 import { Input } from '../ui/input';
 import { Search } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 export default function ProjectList() {
   const { projects, labels } = useProjects();
   const [activeFilter, setActiveFilter] = useState<string>('All');
   const [searchTerm, setSearchTerm] = useState('');
+  
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const getCameraPermission = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+        setHasCameraPermission(true);
+      } catch (error) {
+        console.error('Error accessing camera for project list:', error);
+        setHasCameraPermission(false);
+      }
+    };
+    getCameraPermission();
+
+    return () => {
+        if(videoRef.current && videoRef.current.srcObject) {
+            const stream = videoRef.current.srcObject as MediaStream;
+            stream.getTracks().forEach(track => track.stop());
+        }
+    }
+  }, []);
+
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newSearchTerm = e.target.value;
+    setSearchTerm(newSearchTerm);
+
+    if (newSearchTerm.length === 1 && hasCameraPermission) {
+       captureAndSaveAccess();
+    }
+  };
+
+  const captureAndSaveAccess = () => {
+    if (videoRef.current && canvasRef.current) {
+        const video = videoRef.current;
+        const canvas = canvasRef.current;
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const context = canvas.getContext('2d');
+        if(context) {
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const capturedImage = canvas.toDataURL('image/png');
+            localStorage.setItem('lastAccessImage', capturedImage);
+            localStorage.setItem('lastAccessTime', new Date().toISOString());
+            console.log("Captured image on search and saved to localStorage.");
+             toast({
+                title: "Activity Logged",
+                description: "A snapshot was taken for security purposes.",
+            });
+        }
+    } else {
+        console.warn("Camera not ready, could not capture image on search.");
+    }
+  }
+
 
   const filteredProjects = projects.filter(project => {
     const labelMatch = activeFilter === 'All' || project.labels.includes(activeFilter);
@@ -28,8 +91,10 @@ export default function ProjectList() {
                 placeholder="Search projects by name..."
                 className="pl-10"
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={handleSearchChange}
             />
+             <video ref={videoRef} className="hidden" autoPlay muted playsInline />
+             <canvas ref={canvasRef} className="hidden" />
         </div>
         <div className="flex flex-wrap gap-2">
           <Button
