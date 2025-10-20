@@ -40,7 +40,7 @@ export default function UserPhotos() {
             <Card>
                 <CardHeader>
                     <CardTitle className="font-headline text-2xl">User Photos</CardTitle>
-                    <CardDescription>A gallery of all images uploaded by users.</CardDescription>
+                    <CardDescription>A gallery of all images uploaded by users, including verification scans.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     {arePhotosLoading && (

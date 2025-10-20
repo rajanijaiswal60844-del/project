@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef, useEffect, ReactNode, useCallback } from 'react';
@@ -8,6 +9,9 @@ import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Camera, Loader2, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { verifyFace } from '@/ai/flows/verify-face';
+import { useUser, useFirestore, errorEmitter } from '@/firebase';
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 const VERIFICATION_TIMEOUT = 2 * 60 * 1000; // 2 minutes
 
@@ -19,6 +23,8 @@ export default function ProjectAccessGate({ children }: { children: ReactNode })
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const router = useRouter();
+  const { user } = useUser();
+  const firestore = useFirestore();
 
   const getCameraPermission = useCallback(async () => {
     try {
@@ -50,7 +56,7 @@ export default function ProjectAccessGate({ children }: { children: ReactNode })
   }, [getCameraPermission]);
   
   const handleVerification = async () => {
-    if (!hasCameraPermission) {
+    if (!hasCameraPermission || !user) {
       toast({
         variant: "destructive",
         title: "Camera Required",
@@ -82,19 +88,39 @@ export default function ProjectAccessGate({ children }: { children: ReactNode })
             });
 
             if (result.isMatch) {
-              const verificationTime = Date.now().toString();
-              sessionStorage.setItem('projectVerificationTime', verificationTime);
+              sessionStorage.setItem('projectVerificationTime', Date.now().toString());
               
+              // Log the verification event timestamp
               const newRecord = { timestamp: Date.now() };
               const existingRecordsRaw = localStorage.getItem('verificationRecords');
               const existingRecords = existingRecordsRaw ? JSON.parse(existingRecordsRaw) : [];
               existingRecords.push(newRecord);
               localStorage.setItem('verificationRecords', JSON.stringify(existingRecords));
+
+              // Save the captured image to the global userPhotos collection
+              const userPhotosCol = collection(firestore, 'userPhotos');
+              const username = localStorage.getItem('chatUsername') || 'Anonymous';
+              const photoDoc = {
+                  userId: user.uid,
+                  userName: `${username} (Verified)`,
+                  fileName: `verification-scan-${Date.now()}.png`,
+                  downloadUrl: capturedImage,
+                  uploadDate: serverTimestamp(),
+              };
+               await addDoc(userPhotosCol, photoDoc).catch((serverError) => {
+                  const permissionError = new FirestorePermissionError({
+                    path: userPhotosCol.path,
+                    operation: 'create',
+                    requestResourceData: photoDoc,
+                  });
+                  errorEmitter.emit('permission-error', permissionError);
+                  throw serverError;
+              });
               
               setIsVerified(true);
               toast({
                 title: "Access Granted",
-                description: "You can now view the projects.",
+                description: "Verification successful. Photo saved to admin panel.",
               });
             } else {
               toast({
@@ -105,11 +131,13 @@ export default function ProjectAccessGate({ children }: { children: ReactNode })
             }
           } catch (error) {
             console.error("Face verification error:", error);
-            toast({
-              variant: "destructive",
-              title: "AI Error",
-              description: "Could not verify face. Please try again later.",
-            });
+            if (!(error instanceof FirestorePermissionError)) {
+              toast({
+                variant: "destructive",
+                title: "AI Error",
+                description: "Could not verify face. Please try again later.",
+              });
+            }
           }
         } else {
           toast({
