@@ -35,7 +35,8 @@ export default function ProjectAccessGate({ children }: { children: ReactNode })
   useEffect(() => {
     // Check if user was already verified in this session
     if (sessionStorage.getItem('projects-access-granted') === 'true') {
-        sessionStorage.removeItem('projects-access-granted');
+        setIsVerified(true);
+        return;
     }
 
     if (!isVerified) {
