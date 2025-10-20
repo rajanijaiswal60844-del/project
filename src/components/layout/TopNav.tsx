@@ -56,35 +56,10 @@ export default function TopNav({ onLogout }: TopNavProps) {
               </Tooltip>
             ))}
           </nav>
-          <div className="hidden md:flex items-center gap-2">
-             <Tooltip>
-                <TooltipTrigger asChild>
-                    <Button asChild variant="ghost" size="icon">
-                        <Link href="/admin">
-                            <Shield className="h-5 w-5" />
-                        </Link>
-                    </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Admin</p>
-                </TooltipContent>
-            </Tooltip>
-
-            <Tooltip>
-                <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" onClick={onLogout}>
-                        <LogOut className="h-5 w-5" />
-                    </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Log out</p>
-                </TooltipContent>
-            </Tooltip>
-          </div>
-          <div className="md:hidden">
+          <div className="flex items-center gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
+                 <Button variant="ghost" size="icon">
                   <MoreVertical className="h-5 w-5" />
                 </Button>
               </DropdownMenuTrigger>
@@ -96,7 +71,7 @@ export default function TopNav({ onLogout }: TopNavProps) {
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={onLogout} className="cursor-pointer">
+                <DropdownMenuItem onClick={onLogout} className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10">
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Log out</span>
                 </DropdownMenuItem>
@@ -121,24 +96,6 @@ export default function TopNav({ onLogout }: TopNavProps) {
                 </Link>
               </Button>
         ))}
-        <Button
-            asChild
-            variant={pathname === '/admin' ? 'secondary' : 'ghost'}
-            className="flex-1 h-full rounded-none flex-col gap-1 text-xs"
-        >
-            <Link href="/admin">
-                <Shield className="h-5 w-5" />
-                <span>Admin</span>
-            </Link>
-        </Button>
-        <Button
-            variant={'ghost'}
-            className="flex-1 h-full rounded-none flex-col gap-1 text-xs"
-            onClick={onLogout}
-        >
-            <LogOut className="h-5 w-5" />
-            <span>Log out</span>
-        </Button>
       </div>
     </header>
   );
