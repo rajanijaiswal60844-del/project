@@ -3,8 +3,6 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
-import { useProjects } from "@/context/ProjectsContext";
-import { useTasks } from "@/context/TasksContext";
 import { useToast } from "@/hooks/use-toast";
 import { initialTasks } from "@/lib/data";
 import { initialProjects, labels as initialLabels } from "@/lib/data";

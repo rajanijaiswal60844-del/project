@@ -1,7 +1,8 @@
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { projects as initialProjects, labels as initialLabels, type Project } from '@/lib/data';
+import { initialProjects, labels as initialLabels, type Project } from '@/lib/data';
 
 interface ProjectsContextType {
   projects: Project[];

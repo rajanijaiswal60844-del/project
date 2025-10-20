@@ -20,7 +20,7 @@ export type StudyTask = {
 
 export const labels: string[] = ["UI/UX", "Backend", "Frontend", "AI/ML", "Design"];
 
-export const projects: Project[] = [
+export const initialProjects: Project[] = [
   {
     id: "proj-1",
     name: "Aura UI Redesign",
