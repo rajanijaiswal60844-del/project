@@ -2,111 +2,51 @@
 'use client';
 
 import { useState, useRef, FormEvent, useEffect, ChangeEvent } from 'react';
-import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, Send, Paperclip, X, ArrowRight } from 'lucide-react';
+import { Loader2, Send, Paperclip, X, User } from 'lucide-react';
 import { Avatar, AvatarFallback } from '../ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
-import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
-import { Label } from '../ui/label';
-import { Card, CardContent } from '../ui/card';
-import { useFirestore, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
-import { collection, addDoc, serverTimestamp, query, orderBy, Timestamp } from 'firebase/firestore';
+import { aiChatWithGemini } from '@/ai/flows/ai-chat-with-gemini';
+import { BotIcon } from './BotIcon';
 
 
-interface ForwardedProjectInfo {
-    id: string;
-    name: string;
-    description: string;
-}
-
-interface Message {
-  id: string;
-  username: string;
-  text?: string;
+interface AIChatMessage {
+  role: 'user' | 'bot';
+  text: string;
   image?: string;
-  forwardedProject?: ForwardedProjectInfo;
-  timestamp?: Timestamp;
 }
 
 export default function AIChat() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [image, setImage] = useState<string | null>(null);
-  const [username, setUsername] = useState<string | null>(null);
-  const [usernameInput, setUsernameInput] = useState('');
-  const [isUsernameModalOpen, setIsUsernameModalOpen] = useState(false);
-
-  const firestore = useFirestore();
-
-  const messagesQuery = useMemoFirebase(() => 
-    firestore ? query(collection(firestore, 'chatMessages'), orderBy('timestamp', 'asc')) : null,
-    [firestore]
-  );
-  const { data: messages, isLoading: isMessagesLoading } = useCollection<Message>(messagesQuery);
-
+  const [messages, setMessages] = useState<AIChatMessage[]>([]);
 
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
-  const router = useRouter();
 
   useEffect(() => {
-    const savedUsername = localStorage.getItem('chatUsername');
-    if (savedUsername) {
-      setUsername(savedUsername);
-    } else {
-      setIsUsernameModalOpen(true);
-    }
-    
-    // Handle forwarded project from sessionStorage
-    const handleForwardedProject = () => {
-        const forwardedProjectRaw = sessionStorage.getItem('forwardedProject');
-        if (forwardedProjectRaw && firestore) {
-            try {
-                const project: ForwardedProjectInfo = JSON.parse(forwardedProjectRaw);
-                const messagesCol = collection(firestore, 'chatMessages');
-                const messageData = {
-                    username: savedUsername || 'User',
-                    text: `Let's discuss the project: ${project.name}`,
-                    forwardedProject: project,
-                    timestamp: serverTimestamp(),
-                };
-                addDoc(messagesCol, messageData)
-                .catch((serverError) => {
-                    const permissionError = new FirestorePermissionError({
-                      path: messagesCol.path,
-                      operation: 'create',
-                      requestResourceData: messageData,
-                    });
-                    errorEmitter.emit('permission-error', permissionError);
-                });
-            } catch (e) {
-                console.error("Failed to parse or save forwarded project", e);
-            } finally {
-                sessionStorage.removeItem('forwardedProject');
-            }
-        }
-    };
-    handleForwardedProject();
-  }, [firestore]);
-
-  useEffect(() => {
-    if (messages && messages.length > 0) {
-      setTimeout(() => {
-        if(scrollAreaRef.current) {
-          scrollAreaRef.current.scrollTo({ top: scrollAreaRef.current.scrollHeight, behavior: 'smooth' });
-        }
-      }, 100);
+    // Scroll to bottom when messages change
+    if (scrollAreaRef.current) {
+      scrollAreaRef.current.scrollTo({ top: scrollAreaRef.current.scrollHeight, behavior: 'smooth' });
     }
   }, [messages]);
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (file.size > 2 * 1024 * 1024) { // 2MB limit
+        toast({
+          variant: 'destructive',
+          title: 'Image too large',
+          description: 'Please upload images smaller than 2MB.'
+        });
+        return;
+      }
       const reader = new FileReader();
       reader.onload = (loadEvent) => {
         setImage(loadEvent.target?.result as string);
@@ -117,105 +57,75 @@ export default function AIChat() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if ((!input.trim() && !image) || isLoading || !username || !firestore) return;
+    if ((!input.trim() && !image) || isLoading) return;
 
-    const messagesCol = collection(firestore, 'chatMessages');
-
-    const messageData: any = {
-        username,
-        text: input,
-        timestamp: serverTimestamp(),
-    }
-
-    if (image) {
-        messageData.image = image;
-    }
+    const userMessage: AIChatMessage = { role: 'user', text: input, image: image || undefined };
+    setMessages(prev => [...prev, userMessage]);
     
+    const currentInput = input;
+    const currentImage = image;
+
     setInput('');
     setImage(null);
     setIsLoading(true);
 
-    addDoc(messagesCol, messageData)
-        .catch((serverError) => {
-            const permissionError = new FirestorePermissionError({
-              path: messagesCol.path,
-              operation: 'create',
-              requestResourceData: messageData,
-            });
-            errorEmitter.emit('permission-error', permissionError);
-             toast({
-                variant: "destructive",
-                title: "Send Error",
-                description: "Could not send message."
-            });
-        }).finally(() => {
-            setIsLoading(false);
-        });
+    try {
+      const result = await aiChatWithGemini({ query: currentInput, image: currentImage || undefined });
+      const botMessage: AIChatMessage = { role: 'bot', text: result.response };
+      setMessages(prev => [...prev, botMessage]);
+    } catch (error) {
+      console.error("AI Chat Error:", error);
+      toast({
+        variant: "destructive",
+        title: "AI Error",
+        description: "The AI is not responding. Please try again later."
+      });
+       // Re-add user message to state if AI fails
+      setMessages(prev => prev.slice(0, -1));
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleSetUsername = () => {
-    if (usernameInput.trim()) {
-        const newUsername = usernameInput.trim();
-        setUsername(newUsername);
-        localStorage.setItem('chatUsername', newUsername);
-        setIsUsernameModalOpen(false);
-        toast({ title: `Welcome, ${newUsername}!`});
-    } else {
-        toast({ variant: 'destructive', title: 'Username required', description: 'Please enter a username to join the chat.' });
-    }
-  }
-
-  const handleViewProject = (projectId: string) => {
-    sessionStorage.setItem('highlightProject', projectId);
-    router.push('/projects');
-  }
-
   return (
-    <>
     <div className="flex flex-col h-full border rounded-lg">
       <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
         <div className="space-y-6 max-w-4xl mx-auto">
-          {isMessagesLoading && (
+          {messages.length === 0 && (
             <div className="flex items-center justify-center h-full text-muted-foreground pt-16">
-              <Loader2 className="w-8 h-8 animate-spin" />
+              <p>Ask the AI anything. You can also upload an image.</p>
             </div>
           )}
-          {!isMessagesLoading && messages && messages.length === 0 && (
-            <div className="flex items-center justify-center h-full text-muted-foreground pt-16">
-              <p>Start a conversation.</p>
-            </div>
-          )}
-          {messages && messages.map((message) => (
-            <div key={message.id} className="flex items-start gap-3">
+          {messages.map((message, index) => (
+            <div key={index} className={`flex items-start gap-3 ${message.role === 'user' ? '' : 'flex-row'}`}>
               <Avatar className="w-8 h-8">
-                  <AvatarFallback>{message.username.charAt(0).toUpperCase()}</AvatarFallback>
-                </Avatar>
+                {message.role === 'user' ? <User /> : <BotIcon />}
+              </Avatar>
               <div className="flex-1">
-                 <p className="font-bold text-sm">{message.username}</p>
-                <div className="rounded-lg px-4 py-2 bg-muted inline-block max-w-[90%]">
+                 <p className="font-bold text-sm">{message.role === 'user' ? 'You' : 'AI Assistant'}</p>
+                <div className={`rounded-lg px-4 py-2 inline-block max-w-[90%] ${message.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
                     {message.image && (
                     <div className="relative w-48 h-48 mb-2 rounded-md overflow-hidden">
                         <Image src={message.image} alt="User upload" layout="fill" objectFit="cover" />
                     </div>
                     )}
-                    {message.forwardedProject ? (
-                        <Card className="bg-primary/10 border-primary/50 my-2">
-                            <CardContent className="p-3 space-y-2">
-                                <p className="font-semibold text-primary">{message.forwardedProject.name}</p>
-                                <p className="text-sm text-foreground/80 line-clamp-2">{message.forwardedProject.description}</p>
-                                {message.text && <p className="text-sm pt-2 border-t border-primary/20">{message.text}</p>}
-                                <Button size="sm" className="w-full mt-2" onClick={() => handleViewProject(message.forwardedProject!.id)}>
-                                    View Project <ArrowRight className="ml-2 h-4 w-4" />
-                                </Button>
-                            </CardContent>
-                        </Card>
-                    ) : (
-                         <p className="text-sm whitespace-pre-wrap">{message.text}</p>
-                    )}
+                    <p className="text-sm whitespace-pre-wrap">{message.text}</p>
                 </div>
               </div>
             </div>
           ))}
+           {isLoading && (
+             <div className="flex items-start gap-3">
+                <Avatar className="w-8 h-8"><BotIcon /></Avatar>
+                <div className="flex-1">
+                    <p className="font-bold text-sm">AI Assistant</p>
+                    <div className="rounded-lg px-4 py-2 bg-muted inline-flex items-center gap-2">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Thinking...</span>
+                    </div>
+                </div>
+             </div>
+           )}
         </div>
       </ScrollArea>
       <div className="p-4 border-t bg-background rounded-b-lg">
@@ -240,7 +150,7 @@ export default function AIChat() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Type your message, or upload an image..."
-                disabled={isLoading || !username}
+                disabled={isLoading}
                 className="pr-24 h-12"
               />
               <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-2">
@@ -251,10 +161,10 @@ export default function AIChat() {
                     accept="image/*"
                     onChange={handleFileChange}
                  />
-                 <Button type="button" size="icon" variant="ghost" onClick={() => fileInputRef.current?.click()} disabled={isLoading || !username}>
+                 <Button type="button" size="icon" variant="ghost" onClick={() => fileInputRef.current?.click()} disabled={isLoading}>
                     <Paperclip className="h-5 w-5" />
                  </Button>
-                <Button type="submit" size="icon" disabled={isLoading || (!input.trim() && !image) || !username}>
+                <Button type="submit" size="icon" disabled={isLoading || (!input.trim() && !image)}>
                   {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
                 </Button>
               </div>
@@ -262,29 +172,5 @@ export default function AIChat() {
         </div>
       </div>
     </div>
-
-    <AlertDialog open={isUsernameModalOpen}>
-        <AlertDialogContent>
-            <AlertDialogHeader>
-                <AlertDialogTitle>Enter the Chat</AlertDialogTitle>
-                <AlertDialogDescription>Please set a username to start chatting.</AlertDialogDescription>
-            </AlertDialogHeader>
-            <div className="space-y-2">
-                <Label htmlFor="username">Username</Label>
-                <Input 
-                    id="username"
-                    value={usernameInput}
-                    onChange={(e) => setUsernameInput(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSetUsername()}
-                    placeholder="e.g. JaneDoe"
-                />
-            </div>
-            <AlertDialogFooter>
-                <AlertDialogAction onClick={handleSetUsername}>Set Username</AlertDialogAction>
-            </AlertDialogFooter>
-        </AlertDialogContent>
-    </AlertDialog>
-
-    </>
   );
 }
