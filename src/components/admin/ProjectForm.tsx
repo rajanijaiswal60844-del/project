@@ -151,6 +151,7 @@ export default function ProjectForm({ isOpen, setIsOpen, existingProject }: Proj
                     </div>
                     
                     <DialogFooter>
+                        <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>Cancel</Button>
                         <Button type="submit">{existingProject ? 'Save Changes' : 'Add Project'}</Button>
                     </DialogFooter>
                 </form>
