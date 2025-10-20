@@ -23,7 +23,7 @@ export default function DataManagement() {
         Promise.all([...projectDeletions, ...labelDeletions]).then(() => {
             toast({
                 title: "Data Reset",
-                description: "All projects and labels have been deleted from your account.",
+                description: "All projects and labels have been deleted.",
             });
         }).catch(error => {
              toast({
@@ -39,11 +39,11 @@ export default function DataManagement() {
         <Card>
             <CardHeader>
                 <CardTitle className="font-headline text-2xl">Data Management</CardTitle>
-                <CardDescription>Reset all your personal application data to the default state.</CardDescription>
+                <CardDescription>Reset all application data to the default state.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                 <p className="text-sm text-muted-foreground">
-                    Warning: This action is irreversible and will permanently delete all of your custom projects and labels from your account.
+                    Warning: This action is irreversible and will permanently delete all projects and labels for all users.
                 </p>
                  <Button variant="destructive" onClick={handleReset} className="w-full">
                     Reset All Data

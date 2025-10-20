@@ -33,8 +33,8 @@ export default function ProjectCommentsDialog({ isOpen, setIsOpen, project }: Pr
     const firestore = useFirestore();
 
     const commentsQuery = useMemoFirebase(() => 
-        project && user ? query(getProjectCommentsRef(project.id), orderBy('timestamp', 'asc')) : null,
-        [project, user, getProjectCommentsRef]
+        project ? query(getProjectCommentsRef(project.id), orderBy('timestamp', 'asc')) : null,
+        [project, getProjectCommentsRef]
     );
 
     const { data: comments, isLoading: areCommentsLoading } = useCollection<Comment>(commentsQuery);
@@ -53,7 +53,7 @@ export default function ProjectCommentsDialog({ isOpen, setIsOpen, project }: Pr
     const handleAddComment = async () => {
       if (newComment.trim() === '' || !project || !user) return;
 
-      const commentsCol = collection(firestore, 'users', user.uid, 'projects', project.id, 'comments');
+      const commentsCol = collection(firestore, 'projects', project.id, 'comments');
       
       try {
         await addDoc(commentsCol, {

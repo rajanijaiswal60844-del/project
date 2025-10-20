@@ -183,33 +183,33 @@
         }
       },
       {
-        "path": "/users/{userId}/projects/{projectId}",
+        "path": "/projects/{projectId}",
         "definition": {
           "entityName": "Project",
           "schema": {
             "$ref": "#/backend/entities/Project"
           },
-          "description": "Stores projects created by a user."
+          "description": "Stores projects accessible by all authenticated users."
         }
       },
       {
-        "path": "/users/{userId}/projects/{projectId}/comments/{commentId}",
+        "path": "/projects/{projectId}/comments/{commentId}",
         "definition": {
             "entityName": "Comment",
             "schema": {
                 "$ref": "#/backend/entities/Comment"
             },
-            "description": "Stores comments for a specific project."
+            "description": "Stores comments for a specific project, accessible by all authenticated users."
         }
       },
       {
-        "path": "/users/{userId}/labels/{labelId}",
+        "path": "/labels/{labelId}",
         "definition": {
           "entityName": "Label",
           "schema": {
             "$ref": "#/backend/entities/Label"
           },
-          "description": "Stores custom labels created by a user."
+          "description": "Stores global labels accessible by all authenticated users."
         }
       },
       {

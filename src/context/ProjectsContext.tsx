@@ -2,7 +2,7 @@
 'use client';
 
 import React, { createContext, useContext, ReactNode } from 'react';
-import { initialProjects, labels as initialLabelsData, type Project, type Label } from '@/lib/data';
+import { type Project, type Label } from '@/lib/data';
 import { useCollection, useFirestore, useUser, useMemoFirebase } from '@/firebase';
 import { collection, doc, setDoc, addDoc, deleteDoc, serverTimestamp, query, orderBy } from 'firebase/firestore';
 
@@ -27,21 +27,21 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
   const firestore = useFirestore();
 
   const projectsQuery = useMemoFirebase(() => 
-    user ? query(collection(firestore, 'users', user.uid, 'projects'), orderBy('createdAt', 'desc')) : null,
-    [user, firestore]
+    firestore ? query(collection(firestore, 'projects'), orderBy('createdAt', 'desc')) : null,
+    [firestore]
   );
   const { data: projects, isLoading: isProjectsLoading } = useCollection<Project>(projectsQuery);
 
   const labelsQuery = useMemoFirebase(() =>
-    user ? collection(firestore, 'users', user.uid, 'labels') : null,
-    [user, firestore]
+    firestore ? collection(firestore, 'labels') : null,
+    [firestore]
   );
   const { data: labels, isLoading: isLabelsLoading } = useCollection<Label>(labelsQuery);
 
 
   const addProject = async (projectData: Omit<Project, 'id' | 'createdAt'>) => {
     if (!user) return;
-    const projectsCol = collection(firestore, 'users', user.uid, 'projects');
+    const projectsCol = collection(firestore, 'projects');
     await addDoc(projectsCol, {
       ...projectData,
       createdAt: serverTimestamp(),
@@ -50,25 +50,25 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
 
   const updateProject = async (updatedProject: Project) => {
     if (!user) return;
-    const projectRef = doc(firestore, 'users', user.uid, 'projects', updatedProject.id);
+    const projectRef = doc(firestore, 'projects', updatedProject.id);
     await setDoc(projectRef, updatedProject, { merge: true });
   }
 
   const deleteProject = async (projectId: string) => {
     if (!user) return;
-    const projectRef = doc(firestore, 'users', user.uid, 'projects', projectId);
+    const projectRef = doc(firestore, 'projects', projectId);
     await deleteDoc(projectRef);
   }
 
   const addLabel = async (labelData: Omit<Label, 'id'>) => {
     if (!user) return;
-    const labelsCol = collection(firestore, 'users', user.uid, 'labels');
+    const labelsCol = collection(firestore, 'labels');
     await addDoc(labelsCol, labelData);
   }
 
   const deleteLabel = async (labelId: string) => {
     if (!user) return;
-    const labelRef = doc(firestore, 'users', user.uid, 'labels', labelId);
+    const labelRef = doc(firestore, 'labels', labelId);
     await deleteDoc(labelRef);
 
     // This part is tricky without transactions on the client-side. 
@@ -83,7 +83,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
 
   const getProjectCommentsRef = (projectId: string) => {
     if (!user) return null;
-    return collection(firestore, 'users', user.uid, 'projects', projectId, 'comments');
+    return collection(firestore, 'projects', projectId, 'comments');
   }
 
   const updateProjectComments = async (projectId: string, comments: any) => {
