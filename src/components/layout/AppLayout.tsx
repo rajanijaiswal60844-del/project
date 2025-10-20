@@ -24,6 +24,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   
   const handleLogout = () => {
     localStorage.removeItem('isLoggedIn');
+    sessionStorage.removeItem('projects-access-granted');
     setIsAuthenticated(false);
     router.replace('/login');
   };
