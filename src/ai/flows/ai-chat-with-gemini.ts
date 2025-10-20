@@ -12,6 +12,9 @@ import {z} from 'genkit';
 
 const AIChatWithGeminiInputSchema = z.object({
   query: z.string().describe('The user query to the AI chatbot.'),
+  image: z.string().optional().describe(
+      "An optional image as a data URI. Format: 'data:<mimetype>;base64,<encoded_data>'."
+    ),
 });
 export type AIChatWithGeminiInput = z.infer<typeof AIChatWithGeminiInputSchema>;
 
@@ -28,7 +31,13 @@ const prompt = ai.definePrompt({
   name: 'aiChatWithGeminiPrompt',
   input: {schema: AIChatWithGeminiInputSchema},
   output: {schema: AIChatWithGeminiOutputSchema},
-  prompt: `You are a helpful AI assistant. Respond to the user query in a conversational manner.\n\nUser Query: {{{query}}}`,
+  prompt: `You are a helpful AI assistant. Respond to the user query in a conversational manner. If an image is provided, incorporate it into your response.
+
+User Query: {{{query}}}
+{{#if image}}
+Image: {{media url=image}}
+{{/if}}
+`,
 });
 
 const aiChatWithGeminiFlow = ai.defineFlow(

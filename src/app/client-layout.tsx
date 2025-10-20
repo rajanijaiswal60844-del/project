@@ -2,7 +2,6 @@
 
 import { usePathname } from 'next/navigation';
 import AppLayout from '@/components/layout/AppLayout';
-import AIChat from '@/components/chat/AIChat';
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -15,7 +14,6 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       ) : (
         <AppLayout>{children}</AppLayout>
       )}
-      {!isLoginPage && <AIChat />}
     </>
   );
 }
