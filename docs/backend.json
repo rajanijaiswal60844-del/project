@@ -1,0 +1,256 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the FaceFilter AI application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user."
+        },
+        "email": {
+          "type": "string",
+          "description": "The user's email address.",
+          "format": "email"
+        },
+        "firstName": {
+          "type": "string",
+          "description": "The user's first name."
+        },
+        "lastName": {
+          "type": "string",
+          "description": "The user's last name."
+        }
+      },
+      "required": [
+        "id",
+        "email"
+      ]
+    },
+    "Project": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Project",
+      "type": "object",
+      "description": "Represents a project that can be filtered and managed by the admin.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the project."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the project."
+        },
+        "description": {
+          "type": "string",
+          "description": "A description of the project."
+        },
+        "labelIds": {
+          "type": "array",
+          "description": "References to Labels. (Relationship: Project N:N Label)",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "description"
+      ]
+    },
+    "Label": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Label",
+      "type": "object",
+      "description": "Represents a label that can be assigned to projects for filtering.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the label."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the label."
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ]
+    },
+    "Task": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Task",
+      "type": "object",
+      "description": "Represents a task assigned to a project.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the task."
+        },
+        "projectId": {
+          "type": "string",
+          "description": "Reference to Project. (Relationship: Project 1:N Task)"
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the task."
+        },
+        "dueDate": {
+          "type": "string",
+          "description": "The due date of the task.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "projectId",
+        "name",
+        "dueDate"
+      ]
+    },
+    "UserFile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserFile",
+      "type": "object",
+      "description": "Represents a file uploaded by a user.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user file."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N UserFile)"
+        },
+        "fileName": {
+          "type": "string",
+          "description": "The name of the file."
+        },
+        "fileType": {
+          "type": "string",
+          "description": "The type of the file (e.g., pdf, doc, image)."
+        },
+        "uploadDate": {
+          "type": "string",
+          "description": "The date and time the file was uploaded.",
+          "format": "date-time"
+        },
+        "fileSize": {
+          "type": "number",
+          "description": "The file size in bytes."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "fileName",
+        "fileType",
+        "uploadDate",
+        "fileSize"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profiles. Accessible only by the authenticated user (the 'userId' must match 'request.auth.uid').",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/files/{fileId}",
+        "definition": {
+          "entityName": "UserFile",
+          "schema": {
+            "$ref": "#/backend/entities/UserFile"
+          },
+          "description": "Stores files uploaded by users. Only the authenticated user can access files under their 'userId'.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "fileId",
+              "description": "The unique identifier of the user file."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/projects/{projectId}",
+        "definition": {
+          "entityName": "Project",
+          "schema": {
+            "$ref": "#/backend/entities/Project"
+          },
+          "description": "Stores project data, accessible and manageable by admins.",
+          "params": [
+            {
+              "name": "projectId",
+              "description": "The unique identifier of the project."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/labels/{labelId}",
+        "definition": {
+          "entityName": "Label",
+          "schema": {
+            "$ref": "#/backend/entities/Label"
+          },
+          "description": "Stores label data, accessible and manageable by admins.",
+          "params": [
+            {
+              "name": "labelId",
+              "description": "The unique identifier of the label."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/projects/{projectId}/tasks/{taskId}",
+        "definition": {
+          "entityName": "Task",
+          "schema": {
+            "$ref": "#/backend/entities/Task"
+          },
+          "description": "Stores tasks associated with a specific project. Accessible by admins and potentially users with specific project roles (controlled via a separate mechanism).",
+          "params": [
+            {
+              "name": "projectId",
+              "description": "The unique identifier of the project."
+            },
+            {
+              "name": "taskId",
+              "description": "The unique identifier of the task."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "This Firestore data structure is designed to support the FaceFilter AI application, focusing on user authentication, project management, and user file storage.  The structure enforces Authorization Independence by avoiding `get()` calls in security rules, making use of denormalization where needed. Segregation is used to isolate user files and project data. Access modeling follows path-based ownership for user-specific data and utilizes denormalization for authorization.\n\nUser files are stored under `/users/{userId}/files/{fileId}` to ensure only the authenticated user can access their own files. Project and Label data are stored in root-level collections, allowing for admin-level management without relying on hierarchical authorization.\n\nThe QAPs are satisfied as follows:\n\n*   Secure List Operations for User Files: The structure ensures that listing files under `/users/{userId}/files` is secure because the path inherently limits the results to only the files owned by the authenticated user.\n*   Project and Label access control: By keeping these in root collections without user-specific nesting, the access is controlled through admin privileges, separate from user-level data.\n\nThis design avoids custom claims, relying solely on `request.auth.uid` and database roles for authorization."
+  }
+}
