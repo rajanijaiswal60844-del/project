@@ -38,11 +38,7 @@ export default function ProjectAccessGate({ children }: { children: ReactNode })
     }, []);
 
   useEffect(() => {
-    if (sessionStorage.getItem('projects-access-granted') === 'true') {
-        setIsVerified(true);
-        return;
-    }
-
+    // We don't check session storage anymore to force verification every time.
     if (!isVerified) {
         getCameraPermission();
     }
@@ -99,7 +95,7 @@ export default function ProjectAccessGate({ children }: { children: ReactNode })
 
                         localStorage.setItem('verificationRecords', JSON.stringify(existingRecords));
                         
-                        sessionStorage.setItem('projects-access-granted', 'true');
+                        // No longer setting session storage to ensure verification happens every time
                         
                         setIsVerified(true);
                         toast({
@@ -150,14 +146,15 @@ export default function ProjectAccessGate({ children }: { children: ReactNode })
                 </DialogHeader>
                 <div className="space-y-4 py-4">
                     <div className="w-full aspect-video bg-muted rounded-lg flex items-center justify-center overflow-hidden">
-                        <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
+                        {hasCameraPermission === null && <Loader2 className="w-12 h-12 animate-spin text-muted-foreground" />}
+                        <video ref={videoRef} className={`w-full h-full object-cover ${hasCameraPermission === false ? 'hidden' : 'block'}`} autoPlay muted playsInline />
                         <canvas ref={canvasRef} className="hidden"></canvas>
                     </div>
                     {hasCameraPermission === false && (
                         <Alert variant="destructive">
-                            <AlertTitle>Camera Access Required</AlertTitle>
+                            <AlertTitle>Camera Access Denied</AlertTitle>
                             <AlertDescription>
-                                Please allow camera access in your browser settings.
+                                Please enable camera permissions in your browser settings.
                             </AlertDescription>
                         </Alert>
                     )}
