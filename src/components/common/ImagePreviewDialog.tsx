@@ -5,6 +5,8 @@ import {
   Dialog,
   DialogContent,
   DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import Image from "next/image";
 import { Button } from "../ui/button";
@@ -36,6 +38,9 @@ export default function ImagePreviewDialog({ isOpen, onOpenChange, imageUrl, alt
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-5xl w-full p-2">
+        <DialogHeader>
+            <DialogTitle className="sr-only">{altText}</DialogTitle>
+        </DialogHeader>
         <div className="relative w-full" style={{ paddingTop: '56.25%' /* 16:9 aspect ratio */ }}>
           <Image
             src={imageUrl}
