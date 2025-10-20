@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import AppLayout from '@/components/layout/AppLayout';
 import GameLayout from '@/components/layout/GameLayout';
 
-const gameRoutes = ['/tictactoe', '/memory-match', '/ludo'];
+const gameRoutes = ['/tictactoe', '/memory-match'];
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
