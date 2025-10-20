@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,7 +20,7 @@ export default function TaskTimeline() {
         <CardDescription>A visual overview of tasks scheduled for today across all projects.</CardDescription>
       </CardHeader>
       <CardContent>
-        <ScrollArea className="h-full max-h-96 w-full">
+        <ScrollArea className="h-full max-h-[600px] w-full">
             <div className="space-y-6 pr-6 pb-4">
             {projectsWithTasks.length > 0 ? (
                 projectsWithTasks.map(project => {
