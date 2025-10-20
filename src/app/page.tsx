@@ -10,7 +10,7 @@ export default function Home() {
   return (
     <div className="space-y-8 flex flex-col items-center text-center">
       <div>
-        <h1 className="text-3xl md:text-4xl font-headline font-bold text-foreground">Welcome to your Dashboard</h1>
+        <h1 className="text-3xl md:text-4xl font-headline font-bold text-foreground">Welcome to my project</h1>
         <p className="text-muted-foreground mt-2">
           Your central hub for games and projects. Let's get started!
         </p>
