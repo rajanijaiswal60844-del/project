@@ -56,7 +56,32 @@ export default function TopNav({ onLogout }: TopNavProps) {
               </Tooltip>
             ))}
           </nav>
-          <div className="flex items-center gap-2">
+          <div className="hidden md:flex items-center gap-2">
+             <Tooltip>
+                <TooltipTrigger asChild>
+                    <Button asChild variant="ghost" size="icon">
+                        <Link href="/admin">
+                            <Shield className="h-5 w-5" />
+                        </Link>
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Admin</p>
+                </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" onClick={onLogout}>
+                        <LogOut className="h-5 w-5" />
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Log out</p>
+                </TooltipContent>
+            </Tooltip>
+          </div>
+          <div className="md:hidden">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon">
