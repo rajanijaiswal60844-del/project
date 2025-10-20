@@ -70,7 +70,7 @@ export default function AIChat() {
   return (
     <>
       <Button
-        className="fixed top-1/2 -translate-y-1/2 right-4 w-12 h-12 rounded-full shadow-lg bg-accent hover:bg-accent/90 text-accent-foreground z-40 flex items-center justify-center"
+        className="fixed top-1/2 -translate-y-1/2 right-0 w-10 h-16 rounded-l-full rounded-r-none shadow-lg bg-accent hover:bg-accent/90 text-accent-foreground z-40 flex items-center justify-center pl-2"
         onClick={() => setIsOpen(true)}
         aria-label="Open AI Chat"
         size="icon"

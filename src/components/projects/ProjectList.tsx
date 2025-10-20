@@ -2,22 +2,36 @@
 
 import { useState } from 'react';
 import ProjectCard from './ProjectCard';
-import { projects, labels } from '@/lib/data';
 import { Button } from '../ui/button';
 import { AnimatePresence, motion } from 'framer-motion';
+import { useProjects } from '@/context/ProjectsContext';
+import { Input } from '../ui/input';
+import { Search } from 'lucide-react';
 
 export default function ProjectList() {
+  const { projects, labels } = useProjects();
   const [activeFilter, setActiveFilter] = useState<string>('All');
+  const [searchTerm, setSearchTerm] = useState('');
 
-  const filteredProjects = activeFilter === 'All' 
-    ? projects 
-    : projects.filter(p => p.labels.includes(activeFilter));
+  const filteredProjects = projects.filter(project => {
+    const labelMatch = activeFilter === 'All' || project.labels.includes(activeFilter);
+    const searchTermMatch = project.name.toLowerCase().includes(searchTerm.toLowerCase());
+    return labelMatch && searchTermMatch;
+  });
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-headline font-bold">Projects</h2>
-        <div className="flex flex-wrap gap-2 mt-4">
+      <div className="space-y-4">
+        <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+            <Input 
+                placeholder="Search projects by name..."
+                className="pl-10"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+            />
+        </div>
+        <div className="flex flex-wrap gap-2">
           <Button
             variant={activeFilter === 'All' ? 'default' : 'outline'}
             onClick={() => setActiveFilter('All')}
@@ -52,6 +66,11 @@ export default function ProjectList() {
             ))}
         </AnimatePresence>
       </motion.div>
+      {filteredProjects.length === 0 && (
+        <div className="text-center py-12 text-muted-foreground">
+            <p>No projects found matching your criteria.</p>
+        </div>
+      )}
     </div>
   );
 }
