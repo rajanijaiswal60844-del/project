@@ -19,6 +19,9 @@ export default function Home() {
         <Button size="lg" onClick={() => router.push('/tictactoe')}>
             Play Tic-Tac-Toe
         </Button>
+        <Button size="lg" onClick={() => router.push('/memory-match')}>
+            Play Memory Match
+        </Button>
       </div>
     </div>
   );
