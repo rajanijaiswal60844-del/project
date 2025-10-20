@@ -1,8 +1,8 @@
+
 'use client';
 
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
 
 export default function Home() {
   const router = useRouter();
@@ -17,13 +17,10 @@ export default function Home() {
       </div>
 
       <div className="w-full max-w-lg">
-          <Image 
-              src="https://picsum.photos/seed/monkey/600/400"
-              alt="Laughing Monkey"
-              width={600}
-              height={400}
-              className="rounded-lg shadow-lg"
-              data-ai-hint="laughing monkey"
+          <img 
+              src="https://media.tenor.com/J3-12t_sOTkAAAAC/monkey-dance.gif"
+              alt="Dancing Monkey"
+              className="rounded-lg shadow-lg w-full"
           />
       </div>
 
