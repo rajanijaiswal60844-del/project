@@ -118,6 +118,10 @@ const TicTacToe = () => {
             )}
         </div>
 
+        <Button onClick={resetGame} variant="outline" className="w-full">
+          <RefreshCw className="mr-2 h-4 w-4" />
+          Reset Game
+        </Button>
 
         <div className="text-lg font-semibold pt-2">{status}</div>
         <div className="grid grid-cols-3">
@@ -125,10 +129,6 @@ const TicTacToe = () => {
             <Square key={i} value={squares[i]} onSquareClick={() => handleClick(i)} isWinning={winningLine.includes(i)} />
           ))}
         </div>
-        <Button onClick={resetGame} variant="outline" className="w-full">
-          <RefreshCw className="mr-2 h-4 w-4" />
-          Reset Game
-        </Button>
       </CardContent>
     </Card>
   );
