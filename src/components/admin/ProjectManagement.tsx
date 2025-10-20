@@ -15,6 +15,7 @@ import ManageLabelsDialog from '../projects/ManageLabelsDialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 import Image from 'next/image';
 import { Badge } from '../ui/badge';
+import ImagePreviewDialog from '../common/ImagePreviewDialog';
 
 
 export default function ProjectManagement() {
@@ -25,6 +26,7 @@ export default function ProjectManagement() {
     const [isLabelsDialogOpen, setIsLabelsDialogOpen] = useState(false);
     const [projectToEdit, setProjectToEdit] = useState<Project | null>(null);
     const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
+    const [imageToPreview, setImageToPreview] = useState<string | null>(null);
 
     const handleAddProject = () => {
         setProjectToEdit(null);
@@ -59,7 +61,7 @@ export default function ProjectManagement() {
                         <CardTitle className="font-headline text-2xl">Project Management</CardTitle>
                         <CardDescription>Add, edit, or delete projects and manage labels.</CardDescription>
                     </div>
-                    <div className="flex gap-2 w-full md:w-auto">
+                    <div className="flex flex-wrap gap-2 w-full md:w-auto">
                         <Button onClick={handleAddProject} className="flex-1 md:flex-initial">
                             <PlusCircle className="mr-2 h-4 w-4" /> Add Project
                         </Button>
@@ -89,7 +91,7 @@ export default function ProjectManagement() {
                                         transition={{ duration: 0.2 }}
                                         className="grid grid-cols-[50px_1fr_2fr_1fr_100px] items-center p-2 border-b last:border-b-0"
                                     >
-                                        <div className="relative w-10 h-10 rounded-sm overflow-hidden">
+                                        <div className="relative w-10 h-10 rounded-sm overflow-hidden cursor-pointer" onClick={() => setImageToPreview(project.imageUrl)}>
                                             <Image src={project.imageUrl} alt={project.name} fill className="object-cover" />
                                         </div>
                                         <p className="font-medium truncate pr-4">{project.name}</p>
@@ -138,6 +140,13 @@ export default function ProjectManagement() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
+            <ImagePreviewDialog
+                isOpen={!!imageToPreview}
+                onOpenChange={(open) => !open && setImageToPreview(null)}
+                imageUrl={imageToPreview}
+                altText="Project Image Preview"
+            />
         </>
     );
 }
