@@ -31,7 +31,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   if (!isClient || !isAuthenticated) {
     return (
       <div className="flex h-screen w-full bg-background p-4">
-        <div className="flex-1 md:pl-4">
+        <div className="flex-1">
             <Skeleton className="w-full h-full rounded-lg" />
         </div>
       </div>

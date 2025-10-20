@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../ui/card';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
@@ -10,6 +10,7 @@ import { Lock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const ADMIN_PASSWORD = 'jsjsjjsjj';
+const SESSION_KEY = 'admin-verified';
 
 export default function AdminGate({ children }: { children: React.ReactNode }) {
   const [isVerified, setIsVerified] = useState(false);
@@ -17,9 +18,17 @@ export default function AdminGate({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState('');
   const { toast } = useToast();
 
+   useEffect(() => {
+    // Check session storage on mount
+    if (sessionStorage.getItem(SESSION_KEY) === 'true') {
+      setIsVerified(true);
+    }
+  }, []);
+
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (password === ADMIN_PASSWORD) {
+      sessionStorage.setItem(SESSION_KEY, 'true'); // Store verification in session storage
       setIsVerified(true);
       setError('');
       toast({ title: "Access Granted", description: "Welcome to the Admin Panel." });

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Camera, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { verifyFace } from '@/ai/flows/verify-face';
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -18,6 +19,9 @@ export default function LoginPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
+    // Ensure user is logged out when they reach the login page
+    localStorage.removeItem('isLoggedIn');
+
     const getCameraPermission = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: true });
@@ -39,7 +43,7 @@ export default function LoginPage() {
     getCameraPermission();
   }, [toast]);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!hasCameraPermission) {
         toast({
             variant: "destructive",
@@ -61,35 +65,47 @@ export default function LoginPage() {
             
             setIsLoading(true);
             
-            // Simulate AI face verification
-            setTimeout(() => {
-                const storedUserImage = localStorage.getItem('authorizedUserFace');
-                
-                if (storedUserImage) {
-                    // This is a mock comparison. In a real app, you'd send both images
-                    // to an AI service. For this demo, we'll just check if a user is saved.
+            const storedUserImage = localStorage.getItem('authorizedUserFace');
+            
+            if (storedUserImage) {
+                try {
                     console.log("Comparing scanned face with stored face...");
-                    
-                    // Let's pretend the comparison is successful if the stored image exists.
-                    // A real implementation would be:
-                    // const matchResult = await ai.verifyFace(capturedImage, storedUserImage);
-                    // if (matchResult.isMatch) { ... }
-
-                    localStorage.setItem('isLoggedIn', 'true');
-                    toast({
-                        title: "Login Successful",
-                        description: "Face recognized. Welcome back!",
+                    const result = await verifyFace({
+                        faceA: capturedImage,
+                        faceB: storedUserImage
                     });
-                    router.push('/');
-                } else {
-                    toast({
+
+                    if (result.isMatch) {
+                        localStorage.setItem('isLoggedIn', 'true');
+                        toast({
+                            title: "Login Successful",
+                            description: "Face recognized. Welcome back!",
+                        });
+                        router.push('/');
+                    } else {
+                        toast({
+                            variant: "destructive",
+                            title: "Login Failed",
+                            description: "Face not recognized. Please try again.",
+                        });
+                    }
+                } catch (error) {
+                    console.error("Face verification error:", error);
+                     toast({
                         variant: "destructive",
-                        title: "Login Failed",
-                        description: "No authorized user found. Please register in the admin panel.",
+                        title: "AI Error",
+                        description: "Could not verify face. Please try again later.",
                     });
                 }
-                setIsLoading(false);
-            }, 2000);
+
+            } else {
+                toast({
+                    variant: "destructive",
+                    title: "Login Failed",
+                    description: "No authorized user found. Please register in the admin panel.",
+                });
+            }
+            setIsLoading(false);
         }
     } else {
          toast({
@@ -136,7 +152,7 @@ export default function LoginPage() {
             {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                Scanning...
+                Verifying...
               </>
             ) : (
               <>
