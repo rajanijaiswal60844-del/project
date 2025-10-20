@@ -35,8 +35,7 @@ export default function ProjectAccessGate({ children }: { children: ReactNode })
   useEffect(() => {
     // Check if user was already verified in this session
     if (sessionStorage.getItem('projects-access-granted') === 'true') {
-        setIsVerified(true);
-        return;
+        sessionStorage.removeItem('projects-access-granted');
     }
 
     if (!isVerified) {
@@ -152,7 +151,7 @@ export default function ProjectAccessGate({ children }: { children: ReactNode })
                 <DialogFooter className="grid grid-cols-2 gap-2">
                     <Button
                         variant="outline"
-                        onClick={() => router.back()}
+                        onClick={() => router.push('/')}
                     >
                         <ArrowLeft className="mr-2 h-5 w-5" />
                         Back
