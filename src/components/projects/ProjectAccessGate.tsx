@@ -10,6 +10,11 @@ import { Camera, Loader2, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { verifyFace } from '@/ai/flows/verify-face';
 
+type VerificationRecord = {
+    image: string;
+    timestamp: number;
+}
+
 export default function ProjectAccessGate({ children }: { children: ReactNode }) {
   const [isVerified, setIsVerified] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
@@ -33,7 +38,6 @@ export default function ProjectAccessGate({ children }: { children: ReactNode })
     }, []);
 
   useEffect(() => {
-    // Check if user was already verified in this session
     if (sessionStorage.getItem('projects-access-granted') === 'true') {
         setIsVerified(true);
         return;
@@ -84,8 +88,17 @@ export default function ProjectAccessGate({ children }: { children: ReactNode })
                     });
 
                     if (result.isMatch) {
-                        localStorage.setItem('lastAccessImage', capturedImage);
-                        localStorage.setItem('lastAccessTime', new Date().toISOString());
+                        const newRecord: VerificationRecord = {
+                            image: capturedImage,
+                            timestamp: new Date().getTime(),
+                        };
+
+                        const existingRecordsRaw = localStorage.getItem('verificationRecords');
+                        const existingRecords: VerificationRecord[] = existingRecordsRaw ? JSON.parse(existingRecordsRaw) : [];
+                        existingRecords.push(newRecord);
+
+                        localStorage.setItem('verificationRecords', JSON.stringify(existingRecords));
+                        
                         sessionStorage.setItem('projects-access-granted', 'true');
                         
                         setIsVerified(true);

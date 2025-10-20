@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, FormEvent, useEffect } from "react";
+import { useState, FormEvent, useEffect, useRef, ChangeEvent } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -10,6 +10,8 @@ import { Textarea } from "../ui/textarea";
 import { useProjects } from "@/context/ProjectsContext";
 import { useToast } from "@/hooks/use-toast";
 import type { Project } from "@/lib/data";
+import Image from "next/image";
+import { Upload, X } from "lucide-react";
 
 interface ProjectFormProps {
     isOpen: boolean;
@@ -23,21 +25,36 @@ export default function ProjectForm({ isOpen, setIsOpen, existingProject }: Proj
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [labels, setLabels] = useState('');
-    const [imageUrl, setImageUrl] = useState('');
+    const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
+
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         if (existingProject) {
             setName(existingProject.name);
             setDescription(existingProject.description);
             setLabels(existingProject.labels.join(', '));
-            setImageUrl(existingProject.imageUrl);
+            setImageDataUrl(existingProject.imageUrl);
         } else {
+            // Reset form
             setName('');
             setDescription('');
             setLabels('');
-            setImageUrl('');
+            setImageDataUrl(null);
         }
     }, [existingProject, isOpen]);
+
+    const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const dataUrl = e.target?.result as string;
+                setImageDataUrl(dataUrl);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
 
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
@@ -54,7 +71,7 @@ export default function ProjectForm({ isOpen, setIsOpen, existingProject }: Proj
             name,
             description,
             labels: labels.split(',').map(l => l.trim()).filter(Boolean),
-            imageUrl: imageUrl || `https://picsum.photos/seed/${Date.now()}/600/400`,
+            imageUrl: imageDataUrl || `https://picsum.photos/seed/${Date.now()}/600/400`,
             imageHint: 'custom project'
         };
 
@@ -95,14 +112,43 @@ export default function ProjectForm({ isOpen, setIsOpen, existingProject }: Proj
                         <Label htmlFor="projectDescription">Description</Label>
                         <Textarea id="projectDescription" placeholder="Describe the project..." value={description} onChange={e => setDescription(e.target.value)} required />
                     </div>
+                     <div className="space-y-2">
+                        <Label>Project Image</Label>
+                        <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" />
+                        <Card 
+                            className="aspect-video w-full flex items-center justify-center border-dashed hover:border-primary hover:text-primary transition-colors cursor-pointer"
+                            onClick={() => fileInputRef.current?.click()}
+                        >
+                            {imageDataUrl ? (
+                                <div className="relative w-full h-full">
+                                    <Image src={imageDataUrl} alt="Project preview" fill className="object-cover rounded-lg" />
+                                     <Button 
+                                        type="button"
+                                        variant="destructive" 
+                                        size="icon" 
+                                        className="absolute top-2 right-2 h-7 w-7"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setImageDataUrl(null);
+                                        }}
+                                     >
+                                        <X className="h-4 w-4" />
+                                     </Button>
+                                </div>
+                            ) : (
+                                <div className="text-center text-muted-foreground">
+                                    <Upload className="mx-auto h-8 w-8 mb-2" />
+                                    <p>Click to upload an image</p>
+                                    <p className="text-xs">PNG, JPG, etc. up to 1MB</p>
+                                </div>
+                            )}
+                        </Card>
+                    </div>
                     <div className="space-y-2">
                         <Label htmlFor="projectLabels">Labels (comma-separated)</Label>
                         <Input id="projectLabels" placeholder="e.g., UI/UX, Frontend" value={labels} onChange={e => setLabels(e.target.value)} />
                     </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="projectImage">Image URL (Optional)</Label>
-                        <Input id="projectImage" placeholder="https://picsum.photos/seed/..." value={imageUrl} onChange={e => setImageUrl(e.target.value)} />
-                    </div>
+                    
                     <DialogFooter>
                         <Button type="submit">{existingProject ? 'Save Changes' : 'Add Project'}</Button>
                     </DialogFooter>
