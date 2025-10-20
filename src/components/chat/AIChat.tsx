@@ -70,11 +70,14 @@ export default function AIChat() {
   return (
     <>
       <Button
-        size="icon"
-        className="fixed bottom-6 right-6 h-16 w-16 rounded-full shadow-lg bg-accent hover:bg-accent/90 text-accent-foreground"
+        className="fixed top-1/2 -translate-y-1/2 right-0 w-8 h-24 rounded-l-lg rounded-r-none shadow-lg bg-accent hover:bg-accent/90 text-accent-foreground z-40 flex items-center justify-center"
         onClick={() => setIsOpen(true)}
+        aria-label="Open AI Chat"
       >
-        <BotIcon className="h-8 w-8" />
+        <div className="flex items-center gap-1 -rotate-90 whitespace-nowrap">
+            <BotIcon className="w-4 h-4 rotate-90" />
+            <span className="text-sm font-medium">AI Chat</span>
+        </div>
       </Button>
       <Sheet open={isOpen} onOpenChange={setIsOpen}>
         <SheetContent className="flex flex-col">
