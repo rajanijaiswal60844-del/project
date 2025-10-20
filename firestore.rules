@@ -1,29 +1,19 @@
 /**
- * @fileoverview Firestore Security Rules for FaceFilter AI application.
- *
- * Core Philosophy:
- * This ruleset prioritizes secure data access based on user roles and ownership.
- * It uses a combination of path-based and data-based authorization to control read and write operations.
- * In this Prototyping Mode, data shape validation is relaxed to allow for faster development.
+ * @file Firestore Security Rules
+ * @description This ruleset enforces a security model based on user ownership and public read access where applicable.
  *
  * Data Structure:
- * - /users/{userId}: Stores user profiles, accessible only to the authenticated user.
- * - /users/{userId}/files/{fileId}: Stores files uploaded by a user; only accessible by the user.
- * - /projects/{projectId}: Stores project information; publicly readable, but writes are restricted.
- * - /projects/{projectId}/comments/{commentId}: Stores comments for a project; publicly readable and writable.
- * - /labels/{labelId}: Stores global labels, accessible to all authenticated users.
- * - /chatMessages/{messageId}: Stores chat messages; publicly readable and writable.
+ * - /users/{userId}: Stores user profiles; only accessible by the authenticated user.
+ * - /users/{userId}/files/{fileId}: Stores files uploaded by a user; only accessible by the authenticated user.
+ * - /projects/{projectId}: Stores project data; publicly readable, writable by any authenticated user.
+ * - /projects/{projectId}/comments/{commentId}: Stores comments for a specific project; publicly readable, writable by any authenticated user.
+ * - /labels/{labelId}: Stores global labels; publicly readable, writable by any authenticated user.
+ * - /chatMessages/{messageId}: Stores chat messages; publicly readable, writable by any authenticated user.
  *
  * Key Security Decisions:
- * - User listing is disallowed.
- * - Public read access is granted to projects and chat messages, with controlled write access.
- * - Strict ownership is enforced for user profiles and uploaded files.
- *
- * Denormalization for Authorization:
- *  N/A in this version.
- *
- * Structural Segregation:
- *  N/A in this version.
+ * - Users can only access their own data under /users/{userId} and its subcollections.
+ * - Project, label, and chat message data is publicly readable.
+ * - No data type validation is performed (prototyping mode).
  */
 rules_version = '2';
 service cloud.firestore {
@@ -32,33 +22,55 @@ service cloud.firestore {
     /**
      * @description Controls access to user profiles.
      * @path /users/{userId}
-     * @allow (create) User with ID 'WpSDsKYYGyRMhhBoeVUJm0bwQPc2' can create their profile.
-     * @allow (get) User with ID 'WpSDsKYYGyRMhhBoeVUJm0bwQPc2' can read their profile.
-     * @allow (update) User with ID 'WpSDsKYYGyRMhhBoeVUJm0bwQPc2' can update their profile.
-     * @allow (delete) User with ID 'WpSDsKYYGyRMhhBoeVUJm0bwQPc2' can delete their profile.
-     * @deny (create) User with ID 'otherUserId' cannot create a profile for 'WpSDsKYYGyRMhhBoeVUJm0bwQPc2'.
-     * @principle Enforces document ownership for user profiles.
+     * @allow (create) User with ID 'user123' creates their profile.
+     *   - request.auth.uid: 'user123'
+     *   - request.resource.data.id: 'user123'
+     * @allow (get, update, delete) Authenticated user 'user123' accesses their own profile.
+     *   - request.auth.uid: 'user123'
+     *   - resource.data.id: 'user123'
+     * @deny (create) User 'user456' tries to create a profile for 'user123'.
+     *   - request.auth.uid: 'user456'
+     *   - request.resource.data.id: 'user123'
+     * @deny (get, update, delete) User 'user456' tries to access 'user123's profile.
+     *   - request.auth.uid: 'user456'
+     *   - resource.data.id: 'user123'
+     * @principle Enforces document ownership for user profiles; users can only manage their own profiles.
      */
     match /users/{userId} {
-      //function isOwner(userId) {return request.auth.uid == userId;}
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+
       allow get: if isOwner(userId);
       allow list: if false;
-      allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
       allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Controls access to user-uploaded files.
+     * @description Controls access to user files.
      * @path /users/{userId}/files/{fileId}
-     * @allow (create) User with ID 'WpSDsKYYGyRMhhBoeVUJm0bwQPc2' can create a file entry under their profile.
-     * @allow (get) User with ID 'WpSDsKYYGyRMhhBoeVUJm0bwQPc2' can read a file entry under their profile.
-     * @allow (update) User with ID 'WpSDsKYYGyRMhhBoeVUJm0bwQPc2' can update a file entry under their profile.
-     * @allow (delete) User with ID 'WpSDsKYYGyRMhhBoeVUJm0bwQPc2' can delete a file entry under their profile.
-     * @deny (create) User with ID 'otherUserId' cannot create a file entry under the profile of 'WpSDsKYYGyRMhhBoeVUJm0bwQPc2'.
-     * @principle Enforces document ownership for user files.
+     * @allow (create) User 'user123' creates a new file.
+     *   - request.auth.uid: 'user123'
+     * @allow (get, list, update, delete) User 'user123' accesses their own file.
+     *   - request.auth.uid: 'user123'
+     * @deny (create, get, list, update, delete) User 'user456' tries to access 'user123's file.
+     *   - request.auth.uid: 'user456'
+     * @principle Restricts access to a user's own data tree; users can only manage their own files.
      */
     match /users/{userId}/files/{fileId} {
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
       allow get: if isOwner(userId);
       allow list: if isOwner(userId);
       allow create: if isOwner(userId);
@@ -69,86 +81,73 @@ service cloud.firestore {
     /**
      * @description Controls access to projects.
      * @path /projects/{projectId}
-     * @allow (get) Any authenticated user can read project data.
-     * @allow (list) Any authenticated user can list projects.
-     * @deny (create) No one can create projects in this prototyping mode (add owner validation in production).
-     * @deny (update) No one can update projects in this prototyping mode (add owner validation in production).
-     * @deny (delete) No one can delete projects in this prototyping mode (add owner validation in production).
-     * @principle Allows public read access with restricted write access for projects.
+     * @allow (get, list) Any authenticated user can read projects.
+     *   - request.auth.uid: 'user123'
+     * @allow (create) Any authenticated user can create projects.
+     *   - request.auth.uid: 'user123'
+     * @allow (update, delete) Any authenticated user can update or delete projects.
+     *   - request.auth.uid: 'user123'
+     * @principle Publicly readable collection; any authenticated user can write.
      */
     match /projects/{projectId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
-      allow create: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
-      allow update: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
-      allow delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      allow get, list: if true;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null && resource != null;
+      allow delete: if request.auth != null && resource != null;
     }
 
     /**
-     * @description Controls access to comments within projects.
+     * @description Controls access to comments for projects.
      * @path /projects/{projectId}/comments/{commentId}
-     * @allow (get) Any authenticated user can read comments.
-     * @allow (list) Any authenticated user can list comments within a project.
+     * @allow (get, list) Any authenticated user can read comments.
+     *   - request.auth.uid: 'user123'
      * @allow (create) Any authenticated user can create comments.
-     * @allow (update) Any authenticated user can update comments.
-     * @allow (delete) Any authenticated user can delete comments.
-     * @principle Allows public read and write access to project comments for authenticated users.
+     *   - request.auth.uid: 'user123'
+     * @allow (update, delete) Any authenticated user can update or delete comments.
+     *   - request.auth.uid: 'user123'
+     * @principle Publicly readable collection; any authenticated user can write.
      */
     match /projects/{projectId}/comments/{commentId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isSignedIn() && resource != null;
-      allow delete: if isSignedIn() && resource != null;
+      allow get, list: if true;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null && resource != null;
+      allow delete: if request.auth != null && resource != null;
     }
 
     /**
      * @description Controls access to labels.
      * @path /labels/{labelId}
-     * @allow (get) Any authenticated user can read labels.
-     * @allow (list) Any authenticated user can list labels.
-     * @deny (create) No one can create labels in this prototyping mode (add role-based validation in production).
-     * @deny (update) No one can update labels in this prototyping mode (add role-based validation in production).
-     * @deny (delete) No one can delete labels in this prototyping mode (add role-based validation in production).
-     * @principle Allows public read access with restricted write access for labels.
+     * @allow (get, list) Any authenticated user can read labels.
+     *   - request.auth.uid: 'user123'
+     * @allow (create) Any authenticated user can create labels.
+     *   - request.auth.uid: 'user123'
+     * @allow (update, delete) Any authenticated user can update or delete labels.
+     *   - request.auth.uid: 'user123'
+     * @principle Publicly readable collection; any authenticated user can write.
      */
     match /labels/{labelId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
-      allow create: if false; // TODO: Add role validation for label creation.
-      allow update: if false; // TODO: Add role validation for label updates.
-      allow delete: if false; // TODO: Add role validation for label deletion.
+      allow get, list: if true;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null && resource != null;
+      allow delete: if request.auth != null && resource != null;
     }
 
     /**
      * @description Controls access to chat messages.
      * @path /chatMessages/{messageId}
-     * @allow (get) Any authenticated user can read chat messages.
-     * @allow (list) Any authenticated user can list chat messages.
+     * @allow (get, list) Any authenticated user can read chat messages.
+     *   - request.auth.uid: 'user123'
      * @allow (create) Any authenticated user can create chat messages.
-     * @allow (update) Any authenticated user can update chat messages.
-     * @allow (delete) Any authenticated user can delete chat messages.
-     * @principle Allows public read and write access to chat messages for authenticated users.
+     *   - request.auth.uid: 'user123'
+     * @allow (update, delete) Any authenticated user can update or delete chat messages.
+     *   - request.auth.uid: 'user123'
+     * @principle Publicly readable collection; any authenticated user can write.
      */
     match /chatMessages/{messageId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isSignedIn() && resource != null;
-      allow delete: if isSignedIn() && resource != null;
-    }
-
-    // Helper functions
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    function isOwner(userId) {
-      return request.auth.uid == userId;
-    }
-
-    function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
+      allow get, list: if true;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null && resource != null;
+      allow delete: if request.auth != null && resource != null;
     }
   }
 }
