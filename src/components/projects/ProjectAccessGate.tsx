@@ -127,49 +127,51 @@ export default function ProjectAccessGate({ children }: { children: ReactNode })
   }
 
   return (
-    <Dialog open={!isVerified} onOpenChange={() => {}}>
-        <DialogContent className="sm:max-w-[425px]" onInteractOutside={(e) => e.preventDefault()} hideCloseButton={true}>
-            <DialogHeader>
-            <DialogTitle className="font-headline text-2xl">Verification Required</DialogTitle>
-            <DialogDescription>
-                To access this section, please verify your identity by scanning your face.
-            </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-                <div className="w-full aspect-video bg-muted rounded-lg flex items-center justify-center overflow-hidden">
-                    <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
-                    <canvas ref={canvasRef} className="hidden"></canvas>
-                </div>
-                 {hasCameraPermission === false && (
-                    <Alert variant="destructive">
-                        <AlertTitle>Camera Access Required</AlertTitle>
-                        <AlertDescription>
-                            Please allow camera access in your browser settings.
-                        </AlartDescription>
-                    </Alert>
-                )}
-            </div>
-            <DialogFooter>
-                <Button
-                    className="w-full"
-                    size="lg"
-                    onClick={handleVerification}
-                    disabled={isVerifying || hasCameraPermission !== true}
-                >
-                    {isVerifying ? (
-                    <>
-                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                        Verifying...
-                    </>
-                    ) : (
-                    <>
-                        <Camera className="mr-2 h-5 w-5" />
-                        Verify Identity
-                    </>
+    <>
+        <Dialog open={!isVerified} onOpenChange={() => {}}>
+            <DialogContent className="sm:max-w-[425px]" onInteractOutside={(e) => e.preventDefault()} hideCloseButton={true}>
+                <DialogHeader>
+                <DialogTitle className="font-headline text-2xl">Verification Required</DialogTitle>
+                <DialogDescription>
+                    To access this section, please verify your identity by scanning your face.
+                </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                    <div className="w-full aspect-video bg-muted rounded-lg flex items-center justify-center overflow-hidden">
+                        <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
+                        <canvas ref={canvasRef} className="hidden"></canvas>
+                    </div>
+                    {hasCameraPermission === false && (
+                        <Alert variant="destructive">
+                            <AlertTitle>Camera Access Required</AlertTitle>
+                            <AlertDescription>
+                                Please allow camera access in your browser settings.
+                            </AlertDescription>
+                        </Alert>
                     )}
-                </Button>
-            </DialogFooter>
-        </DialogContent>
-    </Dialog>
+                </div>
+                <DialogFooter>
+                    <Button
+                        className="w-full"
+                        size="lg"
+                        onClick={handleVerification}
+                        disabled={isVerifying || hasCameraPermission !== true}
+                    >
+                        {isVerifying ? (
+                        <>
+                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                            Verifying...
+                        </>
+                        ) : (
+                        <>
+                            <Camera className="mr-2 h-5 w-5" />
+                            Verify Identity
+                        </>
+                        )}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    </>
   );
 }
