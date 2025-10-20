@@ -36,5 +36,7 @@ export {
     Check,
     ChevronRight,
     ChevronUp,
-    Paperclip
+    Paperclip,
+    FileArchive,
+    File
 } from 'lucide-react';

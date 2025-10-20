@@ -1,9 +1,8 @@
-
 'use client';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, FolderKanban, MessageCircle, LogOut, Shield, MoreVertical } from 'lucide-react';
+import { Home, FolderKanban, MessageCircle, LogOut, Shield, MoreVertical, FileArchive } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
@@ -64,6 +63,12 @@ export default function TopNav({ onLogout }: TopNavProps) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                <DropdownMenuItem asChild>
+                  <Link href="/my-files" className="flex items-center cursor-pointer">
+                    <FileArchive className="mr-2 h-4 w-4" />
+                    <span>My Files</span>
+                  </Link>
+                </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link href="/admin" className="flex items-center cursor-pointer">
                     <Shield className="mr-2 h-4 w-4" />

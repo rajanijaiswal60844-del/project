@@ -1,4 +1,3 @@
-
 import { Timestamp } from 'firebase/firestore';
 
 export type Comment = {
@@ -9,7 +8,7 @@ export type Comment = {
 }
 
 export type Project = {
-  id: string;
+  id:string;
   name: string;
   description: string;
   imageUrl: string;
@@ -23,4 +22,13 @@ export type Project = {
 export type Label = {
     id: string;
     name: string;
+}
+
+export type UserFile = {
+    id: string;
+    fileName: string;
+    fileType: string;
+    uploadDate: Timestamp;
+    fileSize: number;
+    downloadUrl: string;
 }
