@@ -7,13 +7,15 @@ export type Project = {
   labels: string[];
 };
 
-export type Task = {
+export type StudyTask = {
   id: string;
-  projectId: string;
   name: string;
-  start: number; // percentage of day
-  end: number;   // percentage of day
+  startTime: string; // "HH:MM"
+  endTime: string;   // "HH:MM"
+  color: string;
+  projectId?: string; // Optional: Link to a project
 };
+
 
 export const labels: string[] = ["UI/UX", "Backend", "Frontend", "AI/ML", "Design"];
 
@@ -52,17 +54,8 @@ export const projects: Project[] = [
   },
 ];
 
-export const tasks: Task[] = [
-    { id: 'task-1', projectId: 'proj-1', name: 'Wireframing', start: 0, end: 20 },
-    { id: 'task-2', projectId: 'proj-1', name: 'Mockups', start: 22, end: 45 },
-    { id: 'task-3', projectId: 'proj-1', name: 'Prototyping', start: 50, end: 80 },
-    { id: 'task-4', projectId: 'proj-2', name: 'API Design', start: 5, end: 30 },
-    { id: 'task-5', projectId: 'proj-2', name: 'Data Modeling', start: 32, end: 60 },
-    { id: 'task-6', projectId: 'proj-2', name: 'Endpoint Dev', start: 61, end: 95 },
-    { id: 'task-7', projectId: 'proj-3', name: 'Button Component', start: 0, end: 15 },
-    { id: 'task-8', projectId: 'proj-3', name: 'Card Component', start: 16, end: 35 },
-    { id: 'task-9', projectId: 'proj-3', name: 'Form Elements', start: 36, end: 70 },
-    { id: 'task-10', projectId: 'proj-3', name: 'Documentation', start: 75, end: 100 },
-    { id: 'task-11', projectId: 'proj-4', name: 'Research', start: 0, end: 40 },
-    { id: 'task-12', projectId: 'proj-4', name: 'Implementation', start: 45, end: 90 },
+export const initialTasks: StudyTask[] = [
+    { id: 'task-1', name: 'Math Practice', startTime: '09:00', endTime: '10:30', color: 'hsl(var(--primary))' },
+    { id: 'task-2', name: 'Chemistry Review', startTime: '11:00', endTime: '12:00', color: 'hsl(var(--accent))' },
+    { id: 'task-3', name: 'History Reading', startTime: '14:30', endTime: '16:00', color: 'hsl(var(--secondary))' },
 ];

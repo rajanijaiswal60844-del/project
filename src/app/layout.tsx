@@ -3,6 +3,7 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import ClientLayout from './client-layout';
 import { ProjectsProvider } from '@/context/ProjectsContext';
+import { TasksProvider } from '@/context/TasksContext';
 
 export const metadata: Metadata = {
   title: 'FaceFilter AI',
@@ -24,7 +25,9 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased">
         <ProjectsProvider>
-          <ClientLayout>{children}</ClientLayout>
+          <TasksProvider>
+            <ClientLayout>{children}</ClientLayout>
+          </TasksProvider>
         </ProjectsProvider>
         <Toaster />
       </body>

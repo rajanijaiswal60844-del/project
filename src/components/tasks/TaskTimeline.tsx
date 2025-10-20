@@ -1,8 +1,12 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { projects, tasks } from "@/lib/data";
+import { useProjects } from "@/context/ProjectsContext";
+import { useTasks } from "@/context/TasksContext";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 
 export default function TaskTimeline() {
+  const { projects } = useProjects();
+  const { tasks } = useTasks();
+
   return (
     <Card>
       <CardHeader>
@@ -13,30 +17,37 @@ export default function TaskTimeline() {
         <div className="space-y-6">
           {projects.map(project => {
             const projectTasks = tasks.filter(task => task.projectId === project.id);
+            if (projectTasks.length === 0) return null;
+            
             return (
               <div key={project.id}>
                 <h3 className="font-semibold mb-2">{project.name}</h3>
                 <div className="w-full bg-muted rounded-full h-8 relative">
                   <TooltipProvider delayDuration={100}>
-                    {projectTasks.map(task => (
+                    {projectTasks.map(task => {
+                       const start = (parseInt(task.startTime.split(':')[0]) * 60 + parseInt(task.startTime.split(':')[1])) / (24 * 60) * 100;
+                       const end = (parseInt(task.endTime.split(':')[0]) * 60 + parseInt(task.endTime.split(':')[1])) / (24 * 60) * 100;
+
+                      return (
                         <Tooltip key={task.id}>
                             <TooltipTrigger asChild>
                                 <div
-                                    className="absolute h-full bg-primary/80 hover:bg-primary rounded-full border-2 border-card"
+                                    className="absolute h-full rounded-full border-2 border-card"
                                     style={{
-                                        left: `${task.start}%`,
-                                        width: `${task.end - task.start}%`,
+                                        left: `${start}%`,
+                                        width: `${end - start}%`,
+                                        backgroundColor: task.color,
                                     }}
                                 />
                             </TooltipTrigger>
                             <TooltipContent>
                                 <p className="font-bold">{task.name}</p>
                                 <p className="text-sm text-muted-foreground">
-                                    {`Time: ${task.start}% - ${task.end}%`}
+                                    {`Time: ${task.startTime} - ${task.endTime}`}
                                 </p>
                             </TooltipContent>
                         </Tooltip>
-                    ))}
+                    )})}
                   </TooltipProvider>
                 </div>
               </div>
