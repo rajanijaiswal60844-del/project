@@ -13,7 +13,7 @@ import Image from 'next/image';
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 import { Label } from '../ui/label';
 import { Card, CardContent } from '../ui/card';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, addDoc, serverTimestamp, query, orderBy, Timestamp } from 'firebase/firestore';
 
 
@@ -40,12 +40,11 @@ export default function AIChat() {
   const [usernameInput, setUsernameInput] = useState('');
   const [isUsernameModalOpen, setIsUsernameModalOpen] = useState(false);
 
-  const { user } = useUser();
   const firestore = useFirestore();
 
   const messagesQuery = useMemoFirebase(() => 
-    user ? query(collection(firestore, 'users', user.uid, 'chatMessages'), orderBy('timestamp', 'asc')) : null,
-    [user, firestore]
+    firestore ? query(collection(firestore, 'chatMessages'), orderBy('timestamp', 'asc')) : null,
+    [firestore]
   );
   const { data: messages, isLoading: isMessagesLoading } = useCollection<Message>(messagesQuery);
 
@@ -66,10 +65,10 @@ export default function AIChat() {
     // Handle forwarded project from sessionStorage
     const handleForwardedProject = async () => {
         const forwardedProjectRaw = sessionStorage.getItem('forwardedProject');
-        if (forwardedProjectRaw && user && firestore) {
+        if (forwardedProjectRaw && firestore) {
             try {
                 const project: ForwardedProjectInfo = JSON.parse(forwardedProjectRaw);
-                const messagesCol = collection(firestore, 'users', user.uid, 'chatMessages');
+                const messagesCol = collection(firestore, 'chatMessages');
                 await addDoc(messagesCol, {
                     username: savedUsername || 'User',
                     text: `Let's discuss the project: ${project.name}`,
@@ -84,7 +83,7 @@ export default function AIChat() {
         }
     };
     handleForwardedProject();
-  }, [user, firestore]);
+  }, [firestore]);
 
   useEffect(() => {
     if (messages && messages.length > 0) {
@@ -109,9 +108,9 @@ export default function AIChat() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if ((!input.trim() && !image) || isLoading || !username || !user) return;
+    if ((!input.trim() && !image) || isLoading || !username || !firestore) return;
 
-    const messagesCol = collection(firestore, 'users', user.uid, 'chatMessages');
+    const messagesCol = collection(firestore, 'chatMessages');
 
     const messageData: Partial<Message> & { timestamp: any } = {
         username,

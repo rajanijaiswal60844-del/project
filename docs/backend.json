@@ -83,8 +83,7 @@
         }
       },
       "required": [
-        "name"
-      ]
+        "name"      ]
     },
     "Comment": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -214,13 +213,13 @@
         }
       },
       {
-        "path": "/users/{userId}/chatMessages/{messageId}",
+        "path": "/chatMessages/{messageId}",
         "definition": {
           "entityName": "ChatMessage",
           "schema": {
             "$ref": "#/backend/entities/ChatMessage"
           },
-          "description": "Stores chat messages for a user."
+          "description": "Stores global chat messages for all users."
         }
       }
     ]
