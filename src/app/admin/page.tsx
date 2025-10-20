@@ -1,7 +1,7 @@
 
 import AdminGate from "@/components/admin/AdminGate";
 import FaceUploader from "@/components/admin/FaceUploader";
-import ProjectForm from "@/components/admin/ProjectForm";
+import ProjectManagement from "@/components/admin/ProjectManagement";
 import { Separator } from "@/components/ui/separator";
 
 export default function AdminPage() {
@@ -18,7 +18,7 @@ export default function AdminPage() {
         <Separator />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <ProjectForm />
+            <ProjectManagement />
             <FaceUploader />
         </div>
       </div>

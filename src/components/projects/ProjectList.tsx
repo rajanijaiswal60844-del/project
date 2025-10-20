@@ -1,16 +1,21 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import ProjectCard from './ProjectCard';
+import ProjectForm from '../admin/ProjectForm';
+import ManageLabelsDialog from './ManageLabelsDialog';
 import { Button } from '../ui/button';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useProjects } from '@/context/ProjectsContext';
 import { Input } from '../ui/input';
-import { Search } from 'lucide-react';
+import { Search, PlusCircle, Tags, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Project } from '@/lib/data';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
+
 
 export default function ProjectList() {
-  const { projects, labels } = useProjects();
+  const { projects, labels, deleteProject } = useProjects();
   const [activeFilter, setActiveFilter] = useState<string>('All');
   const [searchTerm, setSearchTerm] = useState('');
   
@@ -19,19 +24,26 @@ export default function ProjectList() {
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const { toast } = useToast();
 
-  useEffect(() => {
-    const getCameraPermission = async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-        }
-        setHasCameraPermission(true);
-      } catch (error) {
-        console.error('Error accessing camera for project list:', error);
-        setHasCameraPermission(false);
+  const [isProjectFormOpen, setIsProjectFormOpen] = useState(false);
+  const [isLabelsDialogOpen, setIsLabelsDialogOpen] = useState(false);
+  const [projectToEdit, setProjectToEdit] = useState<Project | null>(null);
+  const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
+
+
+  const getCameraPermission = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
       }
-    };
+      setHasCameraPermission(true);
+    } catch (error) {
+      console.error('Error accessing camera for project list:', error);
+      setHasCameraPermission(false);
+    }
+  }, []);
+
+  useEffect(() => {
     getCameraPermission();
 
     return () => {
@@ -40,7 +52,7 @@ export default function ProjectList() {
             stream.getTracks().forEach(track => track.stop());
         }
     }
-  }, []);
+  }, [getCameraPermission]);
 
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -75,39 +87,86 @@ export default function ProjectList() {
     }
   }
 
+  const handleAddProject = () => {
+    setProjectToEdit(null);
+    setIsProjectFormOpen(true);
+  }
+
+  const handleEditProject = (project: Project) => {
+    setProjectToEdit(project);
+    setIsProjectFormOpen(true);
+  }
+
+  const handleDeleteProject = (id: string) => {
+    setProjectToDelete(id);
+  }
+
+  const confirmDeleteProject = () => {
+    if (projectToDelete) {
+        deleteProject(projectToDelete);
+        toast({
+            title: "Project Deleted",
+            description: "The project has been removed."
+        })
+        setProjectToDelete(null);
+    }
+  }
+
 
   const filteredProjects = projects.filter(project => {
     const labelMatch = activeFilter === 'All' || project.labels.includes(activeFilter);
-    const searchTermMatch = project.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const searchTermMatch = project.name.toLowerCase().includes(searchTerm.toLowerCase()) || project.description.toLowerCase().includes(searchTerm.toLowerCase());
     return labelMatch && searchTermMatch;
   });
 
   return (
+    <>
     <div className="space-y-6">
+       <div>
+            <h1 className="text-3xl md:text-4xl font-headline font-bold text-foreground">Projects</h1>
+            <p className="text-muted-foreground mt-2">
+                Search, filter, and manage all your projects.
+            </p>
+        </div>
+
       <div className="space-y-4">
-        <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-            <Input 
-                placeholder="Search projects by name..."
-                className="pl-10"
-                value={searchTerm}
-                onChange={handleSearchChange}
-            />
-             <video ref={videoRef} className="hidden" autoPlay muted playsInline />
-             <canvas ref={canvasRef} className="hidden" />
+         <div className="flex flex-col sm:flex-row gap-2">
+            <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                <Input 
+                    placeholder="Search projects..."
+                    className="pl-10 h-10"
+                    value={searchTerm}
+                    onChange={handleSearchChange}
+                />
+                <video ref={videoRef} className="hidden" autoPlay muted playsInline />
+                <canvas ref={canvasRef} className="hidden" />
+            </div>
+            <div className="flex gap-2">
+                <Button onClick={handleAddProject} className="h-10">
+                    <PlusCircle className="mr-2 h-4 w-4" /> Add Project
+                </Button>
+                 <Button variant="outline" onClick={() => setIsLabelsDialogOpen(true)} className="h-10">
+                    <Tags className="mr-2 h-4 w-4" /> Manage Labels
+                </Button>
+            </div>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button
+            size="sm"
             variant={activeFilter === 'All' ? 'default' : 'outline'}
             onClick={() => setActiveFilter('All')}
+            className="rounded-full"
           >
             All
           </Button>
           {labels.map(label => (
             <Button
               key={label}
+              size="sm"
               variant={activeFilter === label ? 'default' : 'outline'}
               onClick={() => setActiveFilter(label)}
+              className="rounded-full"
             >
               {label}
             </Button>
@@ -126,7 +185,7 @@ export default function ProjectList() {
                     exit={{ opacity: 0, scale: 0.9 }}
                     transition={{ duration: 0.3 }}
                  >
-                    <ProjectCard project={project} />
+                    <ProjectCard project={project} onEdit={handleEditProject} onDelete={handleDeleteProject} />
                 </motion.div>
             ))}
         </AnimatePresence>
@@ -137,5 +196,27 @@ export default function ProjectList() {
         </div>
       )}
     </div>
+
+    <ProjectForm isOpen={isProjectFormOpen} setIsOpen={setIsProjectFormOpen} existingProject={projectToEdit} />
+    <ManageLabelsDialog isOpen={isLabelsDialogOpen} setIsOpen={setIsLabelsDialogOpen} />
+
+    <AlertDialog open={!!projectToDelete} onOpenChange={(open) => !open && setProjectToDelete(null)}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure you want to delete this project?</AlertDialogTitle>
+            <AlertDialogDescription>
+                This action cannot be undone. This will permanently remove the project from your list.
+            </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteProject}>
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete
+            </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }

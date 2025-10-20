@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, FormEvent } from "react";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../ui/card";
+import { useState, FormEvent, useEffect } from "react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
@@ -10,13 +10,33 @@ import { useProjects } from "@/context/ProjectsContext";
 import { useToast } from "@/hooks/use-toast";
 import type { Project } from "@/lib/data";
 
-export default function ProjectForm() {
-    const { addProject } = useProjects();
+interface ProjectFormProps {
+    isOpen: boolean;
+    setIsOpen: (isOpen: boolean) => void;
+    existingProject?: Project | null;
+}
+
+export default function ProjectForm({ isOpen, setIsOpen, existingProject }: ProjectFormProps) {
+    const { addProject, updateProject } = useProjects();
     const { toast } = useToast();
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [labels, setLabels] = useState('');
     const [imageUrl, setImageUrl] = useState('');
+
+    useEffect(() => {
+        if (existingProject) {
+            setName(existingProject.name);
+            setDescription(existingProject.description);
+            setLabels(existingProject.labels.join(', '));
+            setImageUrl(existingProject.imageUrl);
+        } else {
+            setName('');
+            setDescription('');
+            setLabels('');
+            setImageUrl('');
+        }
+    }, [existingProject, isOpen]);
 
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
@@ -29,8 +49,7 @@ export default function ProjectForm() {
             return;
         }
 
-        const newProject: Project = {
-            id: `proj-${Date.now()}`,
+        const projectData = {
             name,
             description,
             labels: labels.split(',').map(l => l.trim()).filter(Boolean),
@@ -38,29 +57,36 @@ export default function ProjectForm() {
             imageHint: 'custom project'
         };
 
-        addProject(newProject);
-
-        toast({
-            title: 'Project Added',
-            description: `"${name}" has been successfully added.`
-        });
+        if (existingProject) {
+            updateProject({ ...existingProject, ...projectData });
+            toast({
+                title: 'Project Updated',
+                description: `"${name}" has been successfully updated.`
+            });
+        } else {
+            const newProject: Project = {
+                id: `proj-${Date.now()}`,
+                ...projectData
+            };
+            addProject(newProject);
+            toast({
+                title: 'Project Added',
+                description: `"${name}" has been successfully added.`
+            });
+        }
         
-        // Reset form
-        setName('');
-        setDescription('');
-        setLabels('');
-        setImageUrl('');
+        setIsOpen(false);
     }
 
     return (
-        <Card>
-            <form onSubmit={handleSubmit}>
-                <CardHeader>
-                    <CardTitle className="font-headline text-2xl">Manage Projects</CardTitle>
-                    <CardDescription>Add a new project to the dashboard.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="space-y-2">
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>{existingProject ? 'Edit Project' : 'Add New Project'}</DialogTitle>
+                    <DialogDescription>Fill in the details for your project.</DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                     <div className="space-y-2">
                         <Label htmlFor="projectName">Project Name</Label>
                         <Input id="projectName" placeholder="e.g., Aura UI Redesign" value={name} onChange={e => setName(e.target.value)} required />
                     </div>
@@ -74,13 +100,13 @@ export default function ProjectForm() {
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="projectImage">Image URL (Optional)</Label>
-                        <Input id="projectImage" placeholder="https://example.com/image.png" value={imageUrl} onChange={e => setImageUrl(e.target.value)} />
+                        <Input id="projectImage" placeholder="https://picsum.photos/seed/..." value={imageUrl} onChange={e => setImageUrl(e.target.value)} />
                     </div>
-                </CardContent>
-                <CardFooter>
-                    <Button type="submit" className="w-full">Add Project</Button>
-                </CardFooter>
-            </form>
-        </Card>
+                    <DialogFooter>
+                        <Button type="submit">{existingProject ? 'Save Changes' : 'Add Project'}</Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
     );
 }
