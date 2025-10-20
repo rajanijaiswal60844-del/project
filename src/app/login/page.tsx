@@ -1,37 +1,27 @@
+
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, AuthErrorCodes, signInWithCredential, EmailAuthProvider } from "firebase/auth";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, AuthErrorCodes } from "firebase/auth";
 import { useRouter }from 'next/navigation';
 import { useUser } from '@/firebase';
-import { Camera, Loader2, RefreshCcw, LogIn, UserPlus } from 'lucide-react';
-import { verifyFace } from '@/ai/flows/verify-face';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { useFirestore } from '@/firebase';
-import Image from 'next/image';
+import { Loader2, LogIn, UserPlus } from 'lucide-react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isScanning, setIsScanning] = useState(false);
-  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
-  const [capturedImage, setCapturedImage] = useState<string | null>(null);
 
   const { toast } = useToast();
   const router = useRouter();
   const auth = getAuth();
-  const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
-
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     if(!isUserLoading && user) {
@@ -39,69 +29,16 @@ export default function LoginPage() {
     }
   }, [user, isUserLoading, router])
   
-  const getCameraPermission = useCallback(async () => {
-    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-        }
-        setHasCameraPermission(true);
-      } catch (error) {
-        console.error('Error accessing camera:', error);
-        setHasCameraPermission(false);
-      }
-    } else {
-      setHasCameraPermission(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    getCameraPermission();
-
-    return () => {
-      if (videoRef.current && videoRef.current.srcObject) {
-        const stream = videoRef.current.srcObject as MediaStream;
-        stream.getTracks().forEach(track => track.stop());
-      }
-    };
-  }, [getCameraPermission]);
-
-  const handleCapture = () => {
-    if (videoRef.current && canvasRef.current) {
-      const video = videoRef.current;
-      const canvas = canvasRef.current;
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      const context = canvas.getContext('2d');
-      if (context) {
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const dataUrl = canvas.toDataURL('image/png');
-        setCapturedImage(dataUrl);
-      }
-    }
-  };
-
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
-      toast({ variant: "destructive", title: "Missing fields" });
+      toast({ variant: "destructive", title: "Missing fields", description: "Email and password are required." });
       return;
-    }
-    if (!capturedImage) {
-        toast({ variant: "destructive", title: "Face scan required", description: "Please capture your face for login." });
-        return;
     }
     setIsLoading(true);
 
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-
-      // Store the captured face image in a 'user_faces' collection in Firestore
-      const userFaceRef = doc(firestore, 'user_faces', user.uid);
-      await setDoc(userFaceRef, { faceImage: capturedImage, email: user.email });
-
+      await createUserWithEmailAndPassword(auth, email, password);
       toast({
         title: "Account Created",
         description: "You have been successfully signed up and logged in.",
@@ -113,75 +50,28 @@ export default function LoginPage() {
       setIsLoading(false);
     }
   };
-
-  const handleFaceScanLogin = async () => {
-    if (!capturedImage) {
-      toast({ variant: "destructive", title: "No image", description: "Please capture an image first." });
+  
+  const handleSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) {
+      toast({ variant: "destructive", title: "Missing fields", description: "Email and password are required." });
       return;
     }
-     if (!email) {
-      toast({ variant: "destructive", title: "Email required", description: "Please enter your email to find your profile." });
-      return;
-    }
-    setIsScanning(true);
+    setIsLoading(true);
 
     try {
-        // 1. Fetch the user's stored face from Firestore using their email
-        const userFaceRef = doc(firestore, 'user_faces', email); // Assuming doc id is user's email
-        const userFaceSnap = await getDoc(userFaceRef);
-
-        if (!userFaceSnap.exists()) {
-             // For flexibility, let's try finding user by UID if email is used as UID in some cases
-             const userFaceRefByUid = doc(firestore, 'user_faces', email);
-             const userFaceSnapByUid = await getDoc(userFaceRefByUid);
-             if(!userFaceSnapByUid.exists()) {
-                toast({ variant: "destructive", title: "No profile found", description: "No user profile found for this email." });
-                setIsScanning(false);
-                return;
-             }
-        }
-        
-        // This is a workaround, in a real app you would query by email field
-        const allUsersRef = collection(firestore, 'user_faces');
-        const q = query(allUsersRef, where("email", "==", email));
-        const querySnapshot = await getDocs(q);
-
-        if (querySnapshot.empty) {
-            toast({ variant: "destructive", title: "No profile found", description: "No user profile found for this email." });
-            setIsScanning(false);
-            return;
-        }
-
-        const userDoc = querySnapshot.docs[0];
-        const storedFaceData = userDoc.data();
-        const storedFaceImage = storedFaceData.faceImage;
-
-      // 2. Call AI to verify faces
-      const result = await verifyFace({ faceA: capturedImage, faceB: storedFaceImage });
-
-      if (result.isMatch) {
-         // 3. If match, sign the user in.
-         // This is a simplified login. In a real app, you'd use a more secure custom token system.
-         // For this demo, we'll use the user's password from a prompt, or you'd have another mechanism.
-         const userPassword = prompt("Face recognized! Please enter your password to complete login.");
-         if (userPassword) {
-            await signInWithEmailAndPassword(auth, email, userPassword);
-            toast({ title: "Login Successful", description: "Welcome back!" });
-            router.push('/');
-         } else {
-            toast({ variant: 'destructive', title: 'Password required' });
-         }
-      } else {
-        toast({ variant: "destructive", title: "Face not recognized" });
-      }
-    } catch (error) {
-        console.error("Face scan login error:", error);
-        toast({ variant: "destructive", title: "Login Error", description: "An error occurred during face scan login." });
+      await signInWithEmailAndPassword(auth, email, password);
+      toast({
+        title: "Login Successful",
+        description: "Welcome back!",
+      });
+      router.push('/');
+    } catch (error: any) {
+      handleAuthError(error);
     } finally {
-        setIsScanning(false);
+      setIsLoading(false);
     }
   }
-
 
   const handleAuthError = (error: any) => {
     console.error(error);
@@ -218,34 +108,15 @@ export default function LoginPage() {
     if (isSignUp) {
         return (
              <form onSubmit={handleSignUp} className="space-y-4">
-                 <div className="aspect-video w-full rounded-lg bg-muted flex items-center justify-center text-muted-foreground overflow-hidden relative">
-                    {!capturedImage ? (
-                        <>
-                            <video ref={videoRef} className={`w-full h-full object-cover ${hasCameraPermission === false ? 'hidden' : 'block'}`} autoPlay muted playsInline />
-                            <canvas ref={canvasRef} className="hidden" />
-                            {hasCameraPermission === false && <p>Camera access denied.</p>}
-                        </>
-                    ) : (
-                         <Image src={capturedImage} alt="Captured face" fill className="object-cover" />
-                    )}
-                 </div>
-                 <div className="flex gap-2">
-                    <Button type="button" variant="outline" className="w-full" onClick={handleCapture} disabled={!hasCameraPermission || !!capturedImage}>
-                        <Camera className="mr-2 h-4 w-4" /> Capture
-                    </Button>
-                    <Button type="button" variant="secondary" className="w-full" onClick={() => setCapturedImage(null)} disabled={!capturedImage}>
-                        <RefreshCcw className="mr-2 h-4 w-4" /> Retake
-                    </Button>
-                 </div>
                 <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input id="email" type="email" placeholder="m@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required disabled={isLoading} />
+                    <Label htmlFor="email-signup">Email</Label>
+                    <Input id="email-signup" type="email" placeholder="m@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required disabled={isLoading} />
                 </div>
                 <div className="space-y-2">
-                    <Label htmlFor="password">Password</Label>
-                    <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required disabled={isLoading} />
+                    <Label htmlFor="password-signup">Password</Label>
+                    <Input id="password-signup" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required disabled={isLoading} />
                 </div>
-                <Button type="submit" className="w-full" disabled={isLoading || !capturedImage}>
+                <Button type="submit" className="w-full" disabled={isLoading}>
                     {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...</> : <><UserPlus className="mr-2 h-4 w-4" />Sign Up</>}
                 </Button>
             </form>
@@ -253,34 +124,19 @@ export default function LoginPage() {
     }
 
     return (
-         <div className="space-y-4">
-             <div className="aspect-video w-full rounded-lg bg-muted flex items-center justify-center text-muted-foreground overflow-hidden relative">
-                {!capturedImage ? (
-                    <>
-                        <video ref={videoRef} className={`w-full h-full object-cover ${hasCameraPermission === false ? 'hidden' : 'block'}`} autoPlay muted playsInline />
-                        <canvas ref={canvasRef} className="hidden" />
-                         {hasCameraPermission === false && <p>Camera access denied.</p>}
-                    </>
-                ) : (
-                     <Image src={capturedImage} alt="Captured face" fill className="object-cover" />
-                )}
-             </div>
-             <div className="flex gap-2">
-                <Button variant="outline" className="w-full" onClick={handleCapture} disabled={!hasCameraPermission || !!capturedImage}>
-                    <Camera className="mr-2 h-4 w-4" /> Capture
-                </Button>
-                <Button variant="secondary" className="w-full" onClick={() => setCapturedImage(null)} disabled={!capturedImage}>
-                    <RefreshCcw className="mr-2 h-4 w-4" /> Retake
-                </Button>
-             </div>
+         <form onSubmit={handleSignIn} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email-login">Email</Label>
-                <Input id="email-login" type="email" placeholder="Enter your email to scan" value={email} onChange={(e) => setEmail(e.target.value)} required disabled={isScanning} />
+                <Input id="email-login" type="email" placeholder="m@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required disabled={isLoading} />
               </div>
-            <Button onClick={handleFaceScanLogin} className="w-full" disabled={isScanning || !capturedImage || !email}>
-                {isScanning ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Scanning...</> : <><LogIn className="mr-2 h-4 w-4" />Sign In with Face</>}
+              <div className="space-y-2">
+                    <Label htmlFor="password-login">Password</Label>
+                    <Input id="password-login" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required disabled={isLoading} />
+                </div>
+            <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Signing In...</> : <><LogIn className="mr-2 h-4 w-4" />Sign In</>}
             </Button>
-        </div>
+        </form>
     )
   }
 
@@ -290,14 +146,14 @@ export default function LoginPage() {
         <CardHeader className="text-center">
           <CardTitle className="font-headline text-3xl">Project</CardTitle>
           <CardDescription>
-            {isSignUp ? 'Create an account with your face' : 'Sign in with your face'}
+            {isSignUp ? 'Create a new account' : 'Sign in to your account'}
           </CardDescription>
         </CardHeader>
         <CardContent>
             {renderContent()}
         </CardContent>
         <CardFooter className="pt-4 text-center text-sm">
-          <Button variant="link" onClick={() => setIsSignUp(!isSignUp)} disabled={isLoading || isScanning}>
+          <Button variant="link" onClick={() => setIsSignUp(!isSignUp)} disabled={isLoading}>
             {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
           </Button>
         </CardFooter>
