@@ -38,5 +38,6 @@ export {
     ChevronUp,
     Paperclip,
     FileArchive,
-    File
+    File,
+    UserCircle
 } from 'lucide-react';

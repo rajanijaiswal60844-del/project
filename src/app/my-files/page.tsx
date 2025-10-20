@@ -52,13 +52,31 @@ export default function MyFilesPage() {
         try {
           const dataUrl = e.target?.result as string;
           const filesCol = collection(firestore, 'users', user.uid, 'files');
-          await addDoc(filesCol, {
+          
+          const fileDoc = {
             fileName: file.name,
             fileType: file.type,
             uploadDate: serverTimestamp(),
             fileSize: file.size,
             downloadUrl: dataUrl,
-          });
+          };
+          
+          // Save to user's private collection
+          await addDoc(filesCol, fileDoc);
+
+          // If it's an image, also save to the global collection
+          if (file.type.startsWith('image/')) {
+            const userPhotosCol = collection(firestore, 'userPhotos');
+            const username = localStorage.getItem('chatUsername') || 'Anonymous';
+            await addDoc(userPhotosCol, {
+                userId: user.uid,
+                userName: username,
+                fileName: file.name,
+                downloadUrl: dataUrl,
+                uploadDate: serverTimestamp(),
+            });
+          }
+
           toast({
             title: 'File Uploaded',
             description: `${file.name} has been saved.`,
@@ -99,6 +117,8 @@ export default function MyFilesPage() {
                 title: 'File Deleted',
                 description: `${fileToDelete.fileName} has been removed.`,
             });
+            // Note: This does not delete from the global `userPhotos` collection.
+            // A cloud function would be needed for more robust synchronization.
         } catch (error) {
              toast({
                 variant: 'destructive',

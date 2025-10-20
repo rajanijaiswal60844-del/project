@@ -152,6 +152,20 @@
         "fileSize",
         "downloadUrl"
       ]
+    },
+    "UserPhoto": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserPhoto",
+      "type": "object",
+      "description": "Represents an image uploaded by a user, accessible by admins.",
+      "properties": {
+          "userId": { "type": "string" },
+          "userName": { "type": "string" },
+          "fileName": { "type": "string" },
+          "downloadUrl": { "type": "string" },
+          "uploadDate": { "type": "object" }
+      },
+      "required": ["userId", "userName", "fileName", "downloadUrl", "uploadDate"]
     }
   },
   "auth": {
@@ -220,6 +234,16 @@
             "$ref": "#/backend/entities/ChatMessage"
           },
           "description": "Stores global chat messages for all users."
+        }
+      },
+      {
+        "path": "/userPhotos/{photoId}",
+        "definition": {
+            "entityName": "UserPhoto",
+            "schema": {
+                "$ref": "#/backend/entities/UserPhoto"
+            },
+            "description": "A global collection of all user-uploaded photos, for admin viewing."
         }
       }
     ]
