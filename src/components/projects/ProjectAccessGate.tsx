@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useRef, useEffect, ReactNode, useCallback } from 'react';
@@ -10,10 +9,7 @@ import { Camera, Loader2, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { verifyFace } from '@/ai/flows/verify-face';
 
-type VerificationRecord = {
-    image?: string; // Image is now optional
-    timestamp: number;
-}
+const VERIFICATION_TIMEOUT = 2 * 60 * 1000; // 2 minutes
 
 export default function ProjectAccessGate({ children }: { children: ReactNode }) {
   const [isVerified, setIsVerified] = useState(false);
@@ -25,108 +21,107 @@ export default function ProjectAccessGate({ children }: { children: ReactNode })
   const router = useRouter();
 
   const getCameraPermission = useCallback(async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-        }
-        setHasCameraPermission(true);
-      } catch (error) {
-        console.error('Error accessing camera:', error);
-        setHasCameraPermission(false);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
       }
-    }, []);
+      setHasCameraPermission(true);
+    } catch (error) {
+      console.error('Error accessing camera:', error);
+      setHasCameraPermission(false);
+    }
+  }, []);
 
   useEffect(() => {
-    // We don't check session storage anymore to force verification every time.
-    if (!isVerified) {
+    const lastVerificationTime = sessionStorage.getItem('projectVerificationTime');
+    if (lastVerificationTime && (Date.now() - parseInt(lastVerificationTime, 10)) < VERIFICATION_TIMEOUT) {
+        setIsVerified(true);
+    } else {
         getCameraPermission();
     }
     
     return () => {
-        if(videoRef.current && videoRef.current.srcObject) {
-            const stream = videoRef.current.srcObject as MediaStream;
-            stream.getTracks().forEach(track => track.stop());
-        }
-    }
-  }, [isVerified, getCameraPermission]);
+      if (videoRef.current && videoRef.current.srcObject) {
+        const stream = videoRef.current.srcObject as MediaStream;
+        stream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [getCameraPermission]);
   
   const handleVerification = async () => {
-     if (!hasCameraPermission) {
-        toast({
-            variant: "destructive",
-            title: "Camera Required",
-            description: "Camera access is required to verify your identity."
-        });
-        return;
+    if (!hasCameraPermission) {
+      toast({
+        variant: "destructive",
+        title: "Camera Required",
+        description: "Camera access is required to verify your identity."
+      });
+      return;
     }
 
     if (videoRef.current && canvasRef.current) {
-        const video = videoRef.current;
-        const canvas = canvasRef.current;
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        const context = canvas.getContext('2d');
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const context = canvas.getContext('2d');
 
-        if (context) {
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
-            const capturedImage = canvas.toDataURL('image/png');
-            
-            setIsVerifying(true);
-            
-            const storedUserImage = localStorage.getItem('authorizedUserFace');
-            
-            if (storedUserImage) {
-                try {
-                    const result = await verifyFace({
-                        faceA: capturedImage,
-                        faceB: storedUserImage
-                    });
+      if (context) {
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const capturedImage = canvas.toDataURL('image/png');
+        
+        setIsVerifying(true);
+        
+        const storedUserImage = localStorage.getItem('authorizedUserFace');
+        
+        if (storedUserImage) {
+          try {
+            const result = await verifyFace({
+              faceA: capturedImage,
+              faceB: storedUserImage
+            });
 
-                    if (result.isMatch) {
-                        // FIX: Only store the timestamp, not the image
-                        const newRecord: VerificationRecord = {
-                            timestamp: new Date().getTime(),
-                        };
-
-                        const existingRecordsRaw = localStorage.getItem('verificationRecords');
-                        const existingRecords: VerificationRecord[] = existingRecordsRaw ? JSON.parse(existingRecordsRaw) : [];
-                        existingRecords.push(newRecord);
-
-                        localStorage.setItem('verificationRecords', JSON.stringify(existingRecords));
-                        
-                        setIsVerified(true);
-                        toast({
-                            title: "Access Granted",
-                            description: "You can now view the projects.",
-                        });
-                    } else {
-                        toast({
-                            variant: "destructive",
-                            title: "Verification Failed",
-                            description: "Face not recognized.",
-                        });
-                    }
-                } catch (error) {
-                    console.error("Face verification error:", error);
-                     toast({
-                        variant: "destructive",
-                        title: "AI Error",
-                        description: "Could not verify face. Please try again later.",
-                    });
-                }
+            if (result.isMatch) {
+              const verificationTime = Date.now().toString();
+              sessionStorage.setItem('projectVerificationTime', verificationTime);
+              
+              const newRecord = { timestamp: Date.now() };
+              const existingRecordsRaw = localStorage.getItem('verificationRecords');
+              const existingRecords = existingRecordsRaw ? JSON.parse(existingRecordsRaw) : [];
+              existingRecords.push(newRecord);
+              localStorage.setItem('verificationRecords', JSON.stringify(existingRecords));
+              
+              setIsVerified(true);
+              toast({
+                title: "Access Granted",
+                description: "You can now view the projects.",
+              });
             } else {
-                 toast({
-                    variant: "destructive",
-                    title: "Error",
-                    description: "No authorized user registered. Cannot verify.",
-                });
+              toast({
+                variant: "destructive",
+                title: "Verification Failed",
+                description: "Face not recognized.",
+              });
             }
-            setIsVerifying(false);
+          } catch (error) {
+            console.error("Face verification error:", error);
+            toast({
+              variant: "destructive",
+              title: "AI Error",
+              description: "Could not verify face. Please try again later.",
+            });
+          }
+        } else {
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "No authorized user registered. Cannot verify.",
+          });
         }
+        setIsVerifying(false);
+      }
     }
-  }
-
+  };
 
   if (isVerified) {
     return <>{children}</>;
@@ -134,56 +129,56 @@ export default function ProjectAccessGate({ children }: { children: ReactNode })
 
   return (
     <>
-        <Dialog open={!isVerified} onOpenChange={() => {}}>
-            <DialogContent className="sm:max-w-[425px]" onInteractOutside={(e) => e.preventDefault()} hideCloseButton={true}>
-                <DialogHeader>
-                <DialogTitle className="font-headline text-2xl">Verification Required</DialogTitle>
-                <DialogDescription>
-                    To access this section, please verify your identity by scanning your face.
-                </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                    <div className="w-full aspect-video bg-muted rounded-lg flex items-center justify-center overflow-hidden">
-                        {hasCameraPermission === null && <Loader2 className="w-12 h-12 animate-spin text-muted-foreground" />}
-                        <video ref={videoRef} className={`w-full h-full object-cover ${hasCameraPermission === false ? 'hidden' : 'block'}`} autoPlay muted playsInline />
-                        <canvas ref={canvasRef} className="hidden"></canvas>
-                    </div>
-                    {hasCameraPermission === false && (
-                        <Alert variant="destructive">
-                            <AlertTitle>Camera Access Denied</AlertTitle>
-                            <AlertDescription>
-                                Please enable camera permissions in your browser settings.
-                            </AlertDescription>
-                        </Alert>
-                    )}
-                </div>
-                <DialogFooter className="grid grid-cols-2 gap-2">
-                    <Button
-                        variant="outline"
-                        onClick={() => router.push('/')}
-                    >
-                        <ArrowLeft className="mr-2 h-5 w-5" />
-                        Back
-                    </Button>
-                    <Button
-                        onClick={handleVerification}
-                        disabled={isVerifying || hasCameraPermission !== true}
-                    >
-                        {isVerifying ? (
-                        <>
-                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                            Verifying...
-                        </>
-                        ) : (
-                        <>
-                            <Camera className="mr-2 h-5 w-5" />
-                            Verify
-                        </>
-                        )}
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
+      <Dialog open={!isVerified} onOpenChange={() => {}}>
+        <DialogContent className="sm:max-w-[425px]" onInteractOutside={(e) => e.preventDefault()} hideCloseButton={true}>
+          <DialogHeader>
+            <DialogTitle className="font-headline text-2xl">Verification Required</DialogTitle>
+            <DialogDescription>
+              To access this section, please verify your identity by scanning your face.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="w-full aspect-video bg-muted rounded-lg flex items-center justify-center overflow-hidden">
+              {hasCameraPermission === null && <Loader2 className="w-12 h-12 animate-spin text-muted-foreground" />}
+              <video ref={videoRef} className={`w-full h-full object-cover ${hasCameraPermission === false ? 'hidden' : 'block'}`} autoPlay muted playsInline />
+              <canvas ref={canvasRef} className="hidden"></canvas>
+            </div>
+            {hasCameraPermission === false && (
+              <Alert variant="destructive">
+                <AlertTitle>Camera Access Denied</AlertTitle>
+                <AlertDescription>
+                  Please enable camera permissions in your browser settings.
+                </AlertDescription>
+              </Alert>
+            )}
+          </div>
+          <DialogFooter className="grid grid-cols-2 gap-2">
+            <Button
+              variant="outline"
+              onClick={() => router.push('/')}
+            >
+              <ArrowLeft className="mr-2 h-5 w-5" />
+              Back
+            </Button>
+            <Button
+              onClick={handleVerification}
+              disabled={isVerifying || hasCameraPermission !== true}
+            >
+              {isVerifying ? (
+                <>
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  Verifying...
+                </>
+              ) : (
+                <>
+                  <Camera className="mr-2 h-5 w-5" />
+                  Verify
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

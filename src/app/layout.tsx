@@ -6,7 +6,7 @@ import { ProjectsProvider } from '@/context/ProjectsContext';
 import { FirebaseClientProvider } from '@/firebase';
 
 export const metadata: Metadata = {
-  title: 'FaceFilter AI',
+  title: 'Project',
   description: 'An AI-powered application for face-based interactions.',
 };
 

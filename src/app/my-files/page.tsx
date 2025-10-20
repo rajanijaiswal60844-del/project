@@ -1,8 +1,7 @@
-
 'use client';
 
 import { useState, useRef, ChangeEvent } from 'react';
-import { useFirestore, useUser, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
+import { useFirestore, useUser, useCollection, useMemoFirebase, errorEmitter } from '@/firebase';
 import { collection, addDoc, serverTimestamp, deleteDoc, doc } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,6 +21,7 @@ import {
 import type { UserFile } from '@/lib/data';
 import MyFilesGate from '@/components/my-files/MyFilesGate';
 import ImagePreviewDialog from '@/components/common/ImagePreviewDialog';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 export default function MyFilesPage() {
   const { user } = useUser();
@@ -52,6 +52,16 @@ export default function MyFilesPage() {
         try {
           const dataUrl = e.target?.result as string;
           
+          if (dataUrl.length > 1048487) { // Firestore document limit is 1MB
+             toast({
+                variant: 'destructive',
+                title: 'File Too Large',
+                description: 'Please upload files smaller than 1MB.',
+            });
+            setIsUploading(false);
+            return;
+          }
+
           // 1. Save to user's private collection
           const filesCol = collection(firestore, 'users', user.uid, 'files');
           const fileDoc = {
@@ -62,13 +72,14 @@ export default function MyFilesPage() {
             downloadUrl: dataUrl,
           };
           
-          addDoc(filesCol, fileDoc).catch((serverError) => {
+          await addDoc(filesCol, fileDoc).catch((serverError) => {
               const permissionError = new FirestorePermissionError({
                   path: filesCol.path,
                   operation: 'create',
                   requestResourceData: fileDoc,
               });
               errorEmitter.emit('permission-error', permissionError);
+              throw serverError;
           });
 
           // 2. If it's an image, also save to the global collection
@@ -82,13 +93,14 @@ export default function MyFilesPage() {
                 downloadUrl: dataUrl,
                 uploadDate: serverTimestamp(),
             };
-            addDoc(userPhotosCol, userPhotoDoc).catch((serverError) => {
+            await addDoc(userPhotosCol, userPhotoDoc).catch((serverError) => {
                 const permissionError = new FirestorePermissionError({
                   path: userPhotosCol.path,
                   operation: 'create',
                   requestResourceData: userPhotoDoc,
                 });
                 errorEmitter.emit('permission-error', permissionError);
+                throw serverError;
             });
           }
 
@@ -98,11 +110,13 @@ export default function MyFilesPage() {
           });
         } catch (error) {
           console.error('Error uploading file:', error);
-          toast({
-            variant: 'destructive',
-            title: 'Upload Failed',
-            description: 'Could not save the file to the database.',
-          });
+          if (!(error instanceof FirestorePermissionError)) {
+            toast({
+              variant: 'destructive',
+              title: 'Upload Failed',
+              description: 'Could not save the file to the database. It might be too large.',
+            });
+          }
         } finally {
           setIsUploading(false);
         }
@@ -127,14 +141,15 @@ export default function MyFilesPage() {
     if (fileToDelete && user) {
         const fileRef = doc(firestore, 'users', user.uid, 'files', fileToDelete.id);
         
-        deleteDoc(fileRef).then(() => {
-            toast({
+        try {
+            await deleteDoc(fileRef);
+             toast({
                 title: 'File Deleted',
                 description: `${fileToDelete.fileName} has been removed.`,
             });
-            // Note: This does not delete from the global `userPhotos` collection.
+             // Note: This does not delete from the global `userPhotos` collection.
             // A cloud function would be needed for more robust synchronization.
-        }).catch(error => {
+        } catch(error) {
             const permissionError = new FirestorePermissionError({
               path: fileRef.path,
               operation: 'delete',
@@ -146,9 +161,9 @@ export default function MyFilesPage() {
                 description: 'Could not delete the file.',
             });
              console.error('Error deleting file:', error);
-        }).finally(() => {
+        } finally {
             setFileToDelete(null);
-        });
+        }
     }
   }
 
@@ -166,7 +181,7 @@ export default function MyFilesPage() {
         <Card>
           <CardHeader>
             <CardTitle>Upload a New File</CardTitle>
-            <CardDescription>Files are stored securely and are only accessible by you.</CardDescription>
+            <CardDescription>Files are stored securely and are only accessible by you. Max file size: 1MB.</CardDescription>
           </CardHeader>
           <CardContent>
             <input
