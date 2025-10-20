@@ -117,12 +117,12 @@ export default function ProjectForm({ isOpen, setIsOpen, existingProject }: Proj
                         <Label>Project Image</Label>
                         <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" />
                         <Card 
-                            className="aspect-video w-full flex items-center justify-center border-dashed hover:border-primary hover:text-primary transition-colors cursor-pointer"
+                            className="aspect-video w-full flex items-center justify-center border-dashed hover:border-primary hover:text-primary transition-colors cursor-pointer bg-muted/20"
                             onClick={() => fileInputRef.current?.click()}
                         >
                             {imageDataUrl ? (
                                 <div className="relative w-full h-full">
-                                    <Image src={imageDataUrl} alt="Project preview" fill className="object-cover rounded-lg" />
+                                    <Image src={imageDataUrl} alt="Project preview" fill className="object-contain rounded-lg" />
                                      <Button 
                                         type="button"
                                         variant="destructive" 
@@ -140,7 +140,7 @@ export default function ProjectForm({ isOpen, setIsOpen, existingProject }: Proj
                                 <div className="text-center text-muted-foreground">
                                     <Upload className="mx-auto h-8 w-8 mb-2" />
                                     <p>Click to upload an image</p>
-                                    <p className="text-xs">PNG, JPG, etc. up to 1MB</p>
+                                    <p className="text-xs">PNG, JPG, etc.</p>
                                 </div>
                             )}
                         </Card>

@@ -12,12 +12,12 @@ export default function ProjectCard({ project }: ProjectCardProps) {
   return (
     <Card className="flex flex-col h-full overflow-hidden transition-all duration-300 hover:shadow-xl group">
       <CardHeader className="p-0 relative">
-        <div className="relative w-full aspect-[3/2]">
+        <div className="relative w-full aspect-[3/2] bg-muted/20">
             <Image
                 src={project.imageUrl}
                 alt={project.name}
                 fill
-                className="object-cover"
+                className="object-contain"
                 data-ai-hint={project.imageHint}
             />
         </div>
