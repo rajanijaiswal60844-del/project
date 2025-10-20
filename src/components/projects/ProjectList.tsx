@@ -8,11 +8,14 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useProjects } from '@/context/ProjectsContext';
 import { Input } from '../ui/input';
 import { Search } from 'lucide-react';
+import type { Project } from '@/lib/data';
+import ProjectCommentsDialog from './ProjectCommentsDialog';
 
 export default function ProjectList() {
   const { projects, labels } = useProjects();
   const [activeFilter, setActiveFilter] = useState<string>('All');
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
@@ -80,7 +83,7 @@ export default function ProjectList() {
                     exit={{ opacity: 0, scale: 0.9 }}
                     transition={{ duration: 0.3 }}
                  >
-                    <ProjectCard project={project} />
+                    <ProjectCard project={project} onCommentClick={() => setSelectedProject(project)} />
                 </motion.div>
             ))}
         </AnimatePresence>
@@ -91,6 +94,12 @@ export default function ProjectList() {
         </div>
       )}
     </div>
+
+    <ProjectCommentsDialog
+        project={selectedProject}
+        isOpen={!!selectedProject}
+        setIsOpen={() => setSelectedProject(null)}
+    />
     </>
   );
 }

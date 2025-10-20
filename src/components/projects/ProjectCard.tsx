@@ -8,19 +8,20 @@ import { Badge } from '@/components/ui/badge';
 import type { Project } from '@/lib/data';
 import ImagePreviewDialog from '../common/ImagePreviewDialog';
 import { Button } from '../ui/button';
-import { Send } from 'lucide-react';
+import { Send, MessageSquare } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 interface ProjectCardProps {
   project: Project;
+  onCommentClick: () => void;
 }
 
-export default function ProjectCard({ project }: ProjectCardProps) {
+export default function ProjectCard({ project, onCommentClick }: ProjectCardProps) {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const router = useRouter();
 
   const handleForwardToChat = () => {
-    const chatMessage = `Project: ${project.name}\nDescription: ${project.description}`;
+    const chatMessage = `Let's discuss the project: ${project.name}\n\nDescription: ${project.description}`;
     sessionStorage.setItem('forwardedMessage', chatMessage);
     router.push('/chat');
   }
@@ -52,9 +53,14 @@ export default function ProjectCard({ project }: ProjectCardProps) {
               <Badge key={label} variant="secondary" className="font-normal">{label}</Badge>
             ))}
           </div>
-           <Button variant="ghost" size="icon" onClick={handleForwardToChat}>
-              <Send className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
-           </Button>
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" size="icon" onClick={onCommentClick}>
+                <MessageSquare className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+            </Button>
+            <Button variant="ghost" size="icon" onClick={handleForwardToChat}>
+                <Send className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+            </Button>
+          </div>
         </CardFooter>
       </Card>
       <ImagePreviewDialog 
