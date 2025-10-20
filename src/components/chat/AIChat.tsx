@@ -103,11 +103,7 @@ export default function AIChat() {
 
   return (
     <>
-    <div className="flex flex-col h-full">
-      <div className="text-center py-4 border-b">
-        <h1 className="text-2xl font-headline">Chat</h1>
-        <p className="text-muted-foreground">Send messages and share files.</p>
-      </div>
+    <div className="flex flex-col h-full border rounded-lg">
       <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
         <div className="space-y-6 max-w-4xl mx-auto">
           {messages.length === 0 && !isLoading && (
@@ -135,7 +131,7 @@ export default function AIChat() {
           ))}
         </div>
       </ScrollArea>
-      <div className="p-4 border-t bg-background">
+      <div className="p-4 border-t bg-background rounded-b-lg">
         <div className="max-w-4xl mx-auto">
             <form onSubmit={handleSubmit} className="relative">
                 {image && (
