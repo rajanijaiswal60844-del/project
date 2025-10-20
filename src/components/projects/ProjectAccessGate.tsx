@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { verifyFace } from '@/ai/flows/verify-face';
 
 type VerificationRecord = {
-    image: string;
+    image?: string; // Image is now optional
     timestamp: number;
 }
 
@@ -84,8 +84,8 @@ export default function ProjectAccessGate({ children }: { children: ReactNode })
                     });
 
                     if (result.isMatch) {
+                        // FIX: Only store the timestamp, not the image
                         const newRecord: VerificationRecord = {
-                            image: capturedImage,
                             timestamp: new Date().getTime(),
                         };
 
@@ -94,8 +94,6 @@ export default function ProjectAccessGate({ children }: { children: ReactNode })
                         existingRecords.push(newRecord);
 
                         localStorage.setItem('verificationRecords', JSON.stringify(existingRecords));
-                        
-                        // No longer setting session storage to ensure verification happens every time
                         
                         setIsVerified(true);
                         toast({
