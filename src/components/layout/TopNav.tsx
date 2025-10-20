@@ -77,7 +77,7 @@ export default function TopNav({ onLogout }: TopNavProps) {
 
         {/* Mobile Nav */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-card border-t h-16 flex items-center justify-around">
-         {[...navItems, ...adminNavItems].map((item) => (
+         {navItems.map((item) => (
               <Button
                 key={item.label}
                 asChild
@@ -90,10 +90,6 @@ export default function TopNav({ onLogout }: TopNavProps) {
                 </Link>
               </Button>
         ))}
-         <Button variant="ghost" className="flex-1 h-full rounded-none flex-col gap-1 text-xs" onClick={onLogout}>
-            <LogOut className="h-5 w-5" />
-            <span>Log out</span>
-        </Button>
       </div>
     </header>
   );
