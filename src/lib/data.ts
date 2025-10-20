@@ -1,4 +1,11 @@
 
+export type Comment = {
+  id: string;
+  text: string;
+  author: string;
+  timestamp: number;
+}
+
 export type Project = {
   id: string;
   name: string;
@@ -6,6 +13,8 @@ export type Project = {
   imageUrl: string;
   imageHint: string;
   labels: string[];
+  rate?: number;
+  comments: Comment[];
 };
 
 export const labels: string[] = ["UI/UX", "Backend", "Frontend", "AI/ML", "Design"];
@@ -18,6 +27,8 @@ export const initialProjects: Project[] = [
     imageUrl: "https://picsum.photos/seed/pf1/600/400",
     imageHint: "abstract technology",
     labels: ["UI/UX", "Design", "Frontend"],
+    rate: 120,
+    comments: [],
   },
   {
     id: "proj-2",
@@ -26,6 +37,8 @@ export const initialProjects: Project[] = [
     imageUrl: "https://picsum.photos/seed/pf2/600/400",
     imageHint: "futuristic interface",
     labels: ["Backend", "AI/ML"],
+    rate: 250,
+    comments: [],
   },
   {
     id: "proj-3",
@@ -34,6 +47,7 @@ export const initialProjects: Project[] = [
     imageUrl: "https://picsum.photos/seed/pf3/600/400",
     imageHint: "glowing circuits",
     labels: ["Frontend", "Design"],
+    comments: [],
   },
   {
     id: "proj-4",
@@ -42,5 +56,7 @@ export const initialProjects: Project[] = [
     imageUrl: "https://picsum.photos/seed/pf4/600/400",
     imageHint: "brain network",
     labels: ["AI/ML"],
+    rate: 300,
+    comments: [],
   },
 ];

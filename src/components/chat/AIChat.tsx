@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef, FormEvent, useEffect, ChangeEvent } from 'react';
@@ -44,6 +45,13 @@ export default function AIChat() {
     if (savedMessages) {
         setMessages(JSON.parse(savedMessages));
     }
+    
+    const forwardedMessage = sessionStorage.getItem('forwardedMessage');
+    if (forwardedMessage) {
+        setInput(forwardedMessage);
+        sessionStorage.removeItem('forwardedMessage');
+    }
+
     setIsInitialized(true);
   }, []);
 

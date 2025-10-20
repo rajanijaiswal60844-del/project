@@ -30,7 +30,7 @@ export default function ProjectManagement() {
 
     const handleAddProject = () => {
         setProjectToEdit(null);
-        setIsProjectFormOpen(true);
+setIsProjectFormOpen(true);
     }
 
     const handleEditProject = (project: Project) => {
@@ -72,11 +72,12 @@ export default function ProjectManagement() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="border rounded-lg overflow-x-auto">
-                        <div className="min-w-[700px]">
-                            <div className="grid grid-cols-[50px_1fr_2fr_1fr_100px] items-center p-2 font-semibold text-sm text-muted-foreground border-b">
+                        <div className="min-w-[800px]">
+                            <div className="grid grid-cols-[50px_1fr_2fr_80px_1fr_100px] items-center p-2 font-semibold text-sm text-muted-foreground border-b">
                                 <div />
                                 <p>Name</p>
                                 <p>Description</p>
+                                <p>Rate</p>
                                 <p>Labels</p>
                                 <div />
                             </div>
@@ -89,13 +90,14 @@ export default function ProjectManagement() {
                                         animate={{ opacity: 1 }}
                                         exit={{ opacity: 0, x: -20 }}
                                         transition={{ duration: 0.2 }}
-                                        className="grid grid-cols-[50px_1fr_2fr_1fr_100px] items-center p-2 border-b last:border-b-0"
+                                        className="grid grid-cols-[50px_1fr_2fr_80px_1fr_100px] items-center p-2 border-b last:border-b-0"
                                     >
                                         <div className="relative w-10 h-10 rounded-sm overflow-hidden cursor-pointer" onClick={() => setImageToPreview(project.imageUrl)}>
                                             <Image src={project.imageUrl} alt={project.name} fill className="object-cover" />
                                         </div>
                                         <p className="font-medium truncate pr-4">{project.name}</p>
                                         <p className="text-sm text-muted-foreground truncate pr-4">{project.description}</p>
+                                        <p className="text-sm font-medium pr-4">{project.rate ? `$${project.rate}` : '-'}</p>
                                         <div className="flex flex-wrap gap-1 pr-4">
                                             {project.labels.map(label => <Badge key={label} variant="secondary" className="font-normal text-xs">{label}</Badge>)}
                                         </div>

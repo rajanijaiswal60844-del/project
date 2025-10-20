@@ -7,6 +7,9 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from '@/components/ui/badge';
 import type { Project } from '@/lib/data';
 import ImagePreviewDialog from '../common/ImagePreviewDialog';
+import { Button } from '../ui/button';
+import { Send } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 interface ProjectCardProps {
   project: Project;
@@ -14,6 +17,13 @@ interface ProjectCardProps {
 
 export default function ProjectCard({ project }: ProjectCardProps) {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const router = useRouter();
+
+  const handleForwardToChat = () => {
+    const chatMessage = `Project: ${project.name}\nDescription: ${project.description}`;
+    sessionStorage.setItem('forwardedMessage', chatMessage);
+    router.push('/chat');
+  }
 
   return (
     <>
@@ -36,12 +46,15 @@ export default function ProjectCard({ project }: ProjectCardProps) {
           <CardTitle className="font-headline text-xl mb-2">{project.name}</CardTitle>
           <CardDescription>{project.description}</CardDescription>
         </CardContent>
-        <CardFooter>
+        <CardFooter className="flex justify-between items-center">
           <div className="flex flex-wrap gap-2">
             {project.labels.map((label) => (
               <Badge key={label} variant="secondary" className="font-normal">{label}</Badge>
             ))}
           </div>
+           <Button variant="ghost" size="icon" onClick={handleForwardToChat}>
+              <Send className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+           </Button>
         </CardFooter>
       </Card>
       <ImagePreviewDialog 
