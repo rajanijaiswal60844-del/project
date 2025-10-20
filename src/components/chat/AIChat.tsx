@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, FormEvent } from 'react';
+import { useState, useRef, FormEvent, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter, SheetDescription } from '@/components/ui/sheet';
 import { Input } from '@/components/ui/input';
@@ -24,6 +24,12 @@ export default function AIChat() {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
+  useEffect(() => {
+    if (isOpen) {
+      setMessages([]);
+    }
+  }, [isOpen]);
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
@@ -44,11 +50,19 @@ export default function AIChat() {
             title: "Error",
             description: "Failed to get a response from the AI."
         });
-        setMessages(prev => prev.slice(0, prev.length -1)); // remove user message on error
+        setMessages(prev => {
+            const newMessages = [...prev];
+            if (newMessages[newMessages.length - 1].role === 'user') {
+                newMessages.pop();
+            }
+            return newMessages;
+        });
     } finally {
         setIsLoading(false);
         setTimeout(() => {
-            scrollAreaRef.current?.scrollTo({ top: scrollAreaRef.current.scrollHeight, behavior: 'smooth' });
+            if(scrollAreaRef.current) {
+                scrollAreaRef.current.scrollTo({ top: scrollAreaRef.current.scrollHeight, behavior: 'smooth' });
+            }
         }, 100);
     }
   };
@@ -70,6 +84,11 @@ export default function AIChat() {
           </SheetHeader>
           <ScrollArea className="flex-1 my-4 -mx-6 px-6" ref={scrollAreaRef}>
             <div className="space-y-6">
+              {messages.length === 0 && !isLoading && (
+                <div className="flex items-center justify-center h-full text-muted-foreground">
+                  <p>Start a conversation with the AI assistant.</p>
+                </div>
+              )}
               {messages.map((message, index) => (
                 <div key={index} className={`flex items-start gap-3 ${message.role === 'user' ? 'justify-end' : ''}`}>
                   {message.role === 'bot' && (

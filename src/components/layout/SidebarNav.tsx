@@ -2,12 +2,14 @@
 
 import { usePathname } from "next/navigation";
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "../ui/sidebar";
-import { LayoutDashboard, ShieldCheck } from "lucide-react";
+import { LayoutDashboard, ShieldCheck, Smartphone, Settings } from "lucide-react";
 import Link from "next/link";
 
 const navItems = [
     { href: '/', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/admin', label: 'Admin', icon: ShieldCheck },
+    { href: '#', label: 'Handset', icon: Smartphone },
+    { href: '#', label: 'Settings', icon: Settings },
 ]
 
 export default function SidebarNav() {
@@ -16,9 +18,9 @@ export default function SidebarNav() {
     return (
         <SidebarMenu>
             {navItems.map((item) => (
-                <SidebarMenuItem key={item.href}>
+                <SidebarMenuItem key={item.label}>
                     <Link href={item.href} passHref legacyBehavior>
-                        <SidebarMenuButton asChild isActive={pathname === item.href} tooltip={item.label}>
+                        <SidebarMenuButton asChild isActive={pathname === item.href && item.href !== '#'} tooltip={item.label}>
                             <a>
                                 <item.icon className="h-5 w-5" />
                                 <span>{item.label}</span>
