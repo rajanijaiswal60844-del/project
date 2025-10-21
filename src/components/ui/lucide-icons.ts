@@ -40,5 +40,6 @@ export {
     FileArchive,
     File,
     UserCircle,
-    Volume2
+    Volume2,
+    MapPin
 } from 'lucide-react';

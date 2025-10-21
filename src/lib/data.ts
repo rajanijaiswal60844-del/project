@@ -32,3 +32,13 @@ export type UserFile = {
     fileSize: number;
     downloadUrl: string;
 }
+
+export type User = {
+    id: string;
+    email: string;
+    location?: {
+        latitude: number;
+        longitude: number;
+        timestamp: Timestamp;
+    }
+}
