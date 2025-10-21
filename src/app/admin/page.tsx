@@ -5,7 +5,6 @@ import DataManagement from "@/components/admin/DataManagement";
 import ProjectManagement from "@/components/admin/ProjectManagement";
 import VerificationRecords from "@/components/admin/VerificationRecords";
 import UserPhotos from "@/components/admin/UserPhotos";
-import UserLocations from "@/components/admin/UserLocations";
 
 export default function AdminPage() {
   return (
@@ -20,7 +19,6 @@ export default function AdminPage() {
         
         <div className="space-y-8">
             <ProjectManagement />
-            <UserLocations />
             <UserPhotos />
             <FaceUploader />
             <VerificationRecords />
