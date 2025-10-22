@@ -71,7 +71,11 @@ export default function ProjectAccessGate({ children }: { children: ReactNode })
         return null;
     } catch (error) {
         console.error("Error fetching authorized user from Firestore:", error);
-        toast({ variant: 'destructive', title: 'Error fetching user data' });
+        const permissionError = new FirestorePermissionError({
+          path: `systemConfig/authorizedUser`,
+          operation: 'get',
+        });
+        errorEmitter.emit('permission-error', permissionError);
         return null;
     }
   }

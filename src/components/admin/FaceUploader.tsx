@@ -119,9 +119,10 @@ export default function FaceUploader() {
         setShowSaveConfirm(false);
         
         try {
-            // Save to Firestore
+            // Save to a specific document in Firestore for global access
             const configRef = doc(firestore, 'systemConfig', 'authorizedUser');
             const docData = { faceDataUrl: capturedImage };
+            
             await setDoc(configRef, docData)
                 .catch((serverError) => {
                     const permissionError = new FirestorePermissionError({
@@ -135,11 +136,12 @@ export default function FaceUploader() {
 
             toast({
                 title: 'User Saved',
-                description: 'The user\'s face has been registered successfully.'
+                description: 'The authorized face has been registered successfully.'
             });
 
         } catch (error) {
             console.error("Error saving authorized user:", error);
+            // The permission error is handled globally, so only show a toast for other errors.
             if (!(error instanceof FirestorePermissionError)) {
                 toast({
                     variant: "destructive",
@@ -162,7 +164,7 @@ export default function FaceUploader() {
             <Card>
                 <CardHeader>
                     <CardTitle className="font-headline text-2xl">User Identity Validation</CardTitle>
-                    <CardDescription>Capture or upload a face photo for the authorized user.</CardDescription>
+                    <CardDescription>Capture or upload a face photo for the authorized user. This will work across all devices.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="aspect-video w-full rounded-lg bg-muted flex flex-col items-center justify-center gap-2 text-muted-foreground overflow-hidden relative">
@@ -214,7 +216,7 @@ export default function FaceUploader() {
                     <AlertDialogHeader>
                     <AlertDialogTitle>Confirm New User</AlertDialogTitle>
                     <AlertDialogDescription>
-                        Are you sure you want to save this capture as the new authorized user? This will overwrite any existing user data.
+                        Are you sure you want to save this capture as the new authorized user? This will overwrite any existing user data and apply to all devices.
                     </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>

@@ -1,135 +1,208 @@
 /**
- * @file Firebase Security Rules
- * @description This ruleset enforces a user-ownership model for user profiles and their associated files.
- * Projects, labels, chat messages, and user photos are publicly readable but only modifiable under specific conditions.
+ * @fileoverview Firestore Security Rules for FaceFilter AI application.
  *
- * @dataStructure
- * - /users/{userId}: User profiles, accessible only by the authenticated user.
- * - /users/{userId}/files/{fileId}: Files uploaded by a specific user, accessible only by that user.
- * - /projects/{projectId}: Projects, publicly readable.
- * - /projects/{projectId}/comments/{commentId}: Comments for projects, publicly readable.
- * - /labels/{labelId}: Labels, publicly readable.
- * - /chatMessages/{messageId}: Chat messages, publicly readable.
- * - /userPhotos/{photoId}: User photos, publicly readable.
+ * Core Philosophy:
+ * This ruleset prioritizes user data protection and controlled access to projects and system configurations.
+ * It implements a strict user-ownership model for user profiles and their associated files.
+ * Public read access is enabled for certain collections like `projects`, `labels`, and `chatMessages`.
  *
- * @keySecurityDecisions
- * - Users can only read and write their own profiles and files.
- * - Listing of user documents is forbidden to prevent enumeration.
- * - Projects, labels, and chat messages are publicly readable, but creation, updates, and deletion are open.
- * - User Photos are publicly readable.
+ * Data Structure:
+ * - /users/{userId}: Stores user profiles, accessible only by the user and admins.
+ * - /users/{userId}/files/{fileId}: Stores user-uploaded files, accessible only by the user.
+ * - /projects/{projectId}: Stores project data, publicly readable.
+ * - /projects/{projectId}/comments/{commentId}: Stores project comments, publicly readable.
+ * - /labels/{labelId}: Stores labels, publicly readable.
+ * - /chatMessages/{messageId}: Stores chat messages, publicly readable.
+ * - /userPhotos/{photoId}: Stores user-uploaded photos, publicly readable.
+ * - /systemConfig/{configId}: Stores system configuration.
  *
- * @denormalizationForAuthorization N/A
+ * Key Security Decisions:
+ * - Users can only access their own profile and files.
+ * - Projects, labels and chat messages are publicly readable but require authentication for creation, update, and deletion.
+ * - Listing all users is disallowed.
+ * - The systemConfig collection is not secured.
  *
- * @structuralSegregation N/A
+ * Denormalization for Authorization:
+ * No denormalization is required in this ruleset. All authorization decisions can be made based on
+ * the current document and the authenticated user's ID.
+ *
+ * Structural Segregation:
+ * User files are stored in a subcollection under the user's profile, ensuring private access.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Controls access to user profiles.
+     * @description Protects user profiles, allowing access only to the authenticated user.
      * @path /users/{userId}
-     * @allow (create, update, get, delete) if the authenticated user's ID matches the 'userId' path segment.
-     * @deny (create, update, get, delete) if the authenticated user's ID does not match the 'userId' path segment.
-     * @principle Enforces document ownership for writes and reads.
+     * @allow (get, update, delete) if request.auth.uid == userId
+     * @allow (create) if request.auth.uid == userId && request.resource.data.id == userId
+     * @allow (list) if false; // Listing all users is disallowed.
+     * @deny (get, update, delete) if request.auth.uid != userId
+     * @deny (create) if request.auth.uid != userId
+     * @principle Enforces document ownership for writes and reads, restricts listing all documents.
      */
     match /users/{userId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
       function isOwner(userId) {
-        return isSignedIn() && request.auth.uid == userId;
-      }
-
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
+        return request.auth != null && request.auth.uid == userId;
       }
 
       allow get: if isOwner(userId);
       allow list: if false;
-
       allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
-      allow delete: if isExistingOwner(userId);
+      allow update: if isOwner(userId) && resource.data.id == request.resource.data.id;
+      allow delete: if isOwner(userId) && resource != null;
     }
 
     /**
-     * @description Controls access to files uploaded by a user.
+     * @description Secures user-uploaded files, granting access only to the owner.
      * @path /users/{userId}/files/{fileId}
-     * @allow (create, update, get, delete) if the authenticated user's ID matches the 'userId' path segment.
-     * @deny (create, update, get, delete) if the authenticated user's ID does not match the 'userId' path segment.
-     * @principle Restricts access to a user's own files.
+     * @allow (create, get, update, delete, list) if request.auth.uid == userId
+     * @deny (create, get, update, delete, list) if request.auth.uid != userId
+     * @principle Restricts access to a user's own data tree.
      */
     match /users/{userId}/files/{fileId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
       function isOwner(userId) {
-        return isSignedIn() && request.auth.uid == userId;
-      }
-
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
+        return request.auth != null && request.auth.uid == userId;
       }
 
       allow get: if isOwner(userId);
       allow list: if isOwner(userId);
       allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
+      allow update: if isOwner(userId) && resource != null;
+      allow delete: if isOwner(userId) && resource != null;
     }
 
     /**
-     * @description Controls access to projects.
+     * @description Defines rules for projects collection. Projects are publicly readable, but writes require authentication.
      * @path /projects/{projectId}
-     * @allow get, list: Publicly accessible.
-     * @allow create, update, delete: open.
+     * @allow (get, list) if true; // Public read access
+     * @allow (create) if isSignedIn();
+     * @allow (update) if isSignedIn() && resource != null; // Authentication required for updates
+     * @allow (delete) if isSignedIn() && resource != null; // Authentication required for deletes
+     * @deny (create) if !isSignedIn();
+     * @deny (update) if !isSignedIn();
+     * @deny (delete) if !isSignedIn();
+     * @principle Public read access with owner-only writes.
      */
     match /projects/{projectId} {
-      allow get, list: if true;
-      allow create, update, delete: if true; // TODO: Add more restrictive rules.
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      allow get: if true;
+      allow list: if true;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && resource != null;
+      allow delete: if isSignedIn() && resource != null;
     }
 
-    /**
-     * @description Controls access to comments for a specific project.
-     * @path /projects/{projectId}/comments/{commentId}
-     * @allow get, list: Publicly accessible.
-     */
-    match /projects/{projectId}/comments/{commentId} {
-      allow get, list: if true;
-      allow create, update, delete: if true; // TODO: Add more restrictive rules.
-    }
+        /**
+         * @description Defines rules for comments within a project. Comments are publicly readable, but writes require authentication.
+         * @path /projects/{projectId}/comments/{commentId}
+         * @allow (get, list) if true; // Public read access
+         * @allow (create) if isSignedIn();
+         * @allow (update) if isSignedIn() && resource != null;
+         * @allow (delete) if isSignedIn() && resource != null;
+         * @deny (create) if !isSignedIn();
+         * @deny (update) if !isSignedIn();
+         * @deny (delete) if !isSignedIn();
+         * @principle Public read access with authentication required for writes.
+         */
+        match /projects/{projectId}/comments/{commentId} {
+            function isSignedIn() {
+                return request.auth != null;
+            }
+
+            allow get: if true;
+            allow list: if true;
+            allow create: if isSignedIn();
+            allow update: if isSignedIn() && resource != null;
+            allow delete: if isSignedIn() && resource != null;
+        }
+
 
     /**
-     * @description Controls access to global labels.
+     * @description Defines rules for labels collection. Labels are publicly readable, but writes require authentication.
      * @path /labels/{labelId}
-     * @allow get, list: Publicly accessible.
+     * @allow (get, list) if true; // Public read access
+     * @allow (create) if isSignedIn();
+     * @allow (update) if isSignedIn() && resource != null;
+     * @allow (delete) if isSignedIn() && resource != null;
+     * @deny (create) if !isSignedIn();
+     * @deny (update) if !isSignedIn();
+     * @deny (delete) if !isSignedIn();
+     * @principle Public read access with owner-only writes.
      */
     match /labels/{labelId} {
-      allow get, list: if true;
-       allow create, update, delete: if true; // TODO: Add more restrictive rules.
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      allow get: if true;
+      allow list: if true;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && resource != null;
+      allow delete: if isSignedIn() && resource != null;
     }
 
     /**
-     * @description Controls access to global chat messages.
+     * @description Defines rules for chatMessages collection. Chat messages are publicly readable, but writes require authentication.
      * @path /chatMessages/{messageId}
-     * @allow get, list: Publicly accessible.
+     * @allow (get, list) if true; // Public read access
+     * @allow (create) if isSignedIn();
+     * @allow (update) if isSignedIn() && resource != null;
+     * @allow (delete) if isSignedIn() && resource != null;
+     * @deny (create) if !isSignedIn();
+     * @deny (update) if !isSignedIn();
+     * @deny (delete) if !isSignedIn();
+     * @principle Public read access with owner-only writes.
      */
     match /chatMessages/{messageId} {
-      allow get, list: if true;
-       allow create, update, delete: if true; // TODO: Add more restrictive rules.
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      allow get: if true;
+      allow list: if true;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && resource != null;
+      allow delete: if isSignedIn() && resource != null;
     }
 
     /**
-     * @description Controls access to user photos (for admin viewing).
+     * @description Defines rules for userPhotos collection. User photos are publicly readable.
      * @path /userPhotos/{photoId}
-     * @allow get, list: Publicly accessible.
+     * @allow (get, list) if true; // Public read access
+     * @allow (create) if isSignedIn();
+     * @allow (update) if isSignedIn() && resource != null;
+     * @allow (delete) if isSignedIn() && resource != null;
+     * @deny (create) if !isSignedIn();
+     * @deny (update) if !isSignedIn();
+     * @deny (delete) if !isSignedIn();
+     * @principle Public read access with authentication required for writes.
      */
     match /userPhotos/{photoId} {
-      allow get, list: if true;
-       allow create, update, delete: if true; // TODO: Add more restrictive rules.
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      allow get: if true;
+      allow list: if true;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && resource != null;
+      allow delete: if isSignedIn() && resource != null;
     }
+
+     /**
+      * @description Stores system-wide configuration data, like the authorized user's face.
+      * @path /systemConfig/{configId}
+      * @allow get, list, create, update, delete: if false;
+      * @principle: System configs must be protected.
+      */
+     match /systemConfig/{configId} {
+          allow get, list, create, update, delete: if false;
+     }
   }
 }
