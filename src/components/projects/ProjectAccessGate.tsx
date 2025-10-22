@@ -10,7 +10,7 @@ import { Camera, Loader2, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { verifyFace } from '@/ai/flows/verify-face';
 import { useUser, useFirestore, errorEmitter } from '@/firebase';
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { addDoc, collection, serverTimestamp, doc, getDoc } from 'firebase/firestore';
 import { FirestorePermissionError } from '@/firebase/errors';
 
 const VERIFICATION_TIMEOUT = 2 * 60 * 1000; // 2 minutes
@@ -55,6 +55,30 @@ export default function ProjectAccessGate({ children }: { children: ReactNode })
     };
   }, [getCameraPermission]);
   
+  const getAuthorizedUserImage = async (): Promise<string | null> => {
+    if (!firestore) return localStorage.getItem('authorizedUserFace');
+
+    try {
+        const configRef = doc(firestore, 'systemConfig', 'authorizedUser');
+        const docSnap = await getDoc(configRef);
+
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            if (data.faceDataUrl) {
+                 // Cache in localStorage for faster subsequent access
+                localStorage.setItem('authorizedUserFace', data.faceDataUrl);
+                return data.faceDataUrl;
+            }
+        }
+        // If not in Firestore, fallback to localStorage
+        return localStorage.getItem('authorizedUserFace');
+    } catch (error) {
+        console.error("Error fetching authorized user from Firestore:", error);
+        // Fallback to localStorage on error
+        return localStorage.getItem('authorizedUserFace');
+    }
+  }
+
   const handleVerification = async () => {
     if (!hasCameraPermission || !user) {
       toast({
@@ -78,7 +102,7 @@ export default function ProjectAccessGate({ children }: { children: ReactNode })
         
         setIsVerifying(true);
         
-        const storedUserImage = localStorage.getItem('authorizedUserFace');
+        const storedUserImage = await getAuthorizedUserImage();
         
         if (storedUserImage) {
           try {
@@ -143,7 +167,7 @@ export default function ProjectAccessGate({ children }: { children: ReactNode })
           toast({
             variant: "destructive",
             title: "Error",
-            description: "No authorized user registered. Cannot verify.",
+            description: "No authorized user registered. Please set one in the Admin Panel.",
           });
         }
         setIsVerifying(false);

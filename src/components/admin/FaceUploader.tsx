@@ -17,6 +17,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import Image from 'next/image';
+import { useFirestore, errorEmitter, FirestorePermissionError } from '@/firebase';
+import { doc, setDoc } from 'firebase/firestore';
 
 export default function FaceUploader() {
     const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
@@ -27,6 +29,7 @@ export default function FaceUploader() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { toast } = useToast();
+    const firestore = useFirestore();
     
     useEffect(() => {
         const getCameraPermission = async () => {
@@ -106,21 +109,51 @@ export default function FaceUploader() {
         }
     };
     
-    const confirmSave = () => {
+    const confirmSave = async () => {
+        if (!capturedImage || !firestore) {
+            toast({ variant: 'destructive', title: 'Save failed', description: 'Image or database not ready.' });
+            return;
+        }
+
         setIsSaving(true);
-        setTimeout(() => {
-            if (capturedImage) {
-                localStorage.setItem('authorizedUserFace', capturedImage);
-                console.log("Saving user image to localStorage...");
-            }
-            setIsSaving(false);
-            setCapturedImage(null);
-            setShowSaveConfirm(false);
+        setShowSaveConfirm(false);
+        
+        try {
+            // Save to Firestore
+            const configRef = doc(firestore, 'systemConfig', 'authorizedUser');
+            const docData = { faceDataUrl: capturedImage };
+            await setDoc(configRef, docData)
+                .catch((serverError) => {
+                    const permissionError = new FirestorePermissionError({
+                        path: configRef.path,
+                        operation: 'write',
+                        requestResourceData: docData,
+                    });
+                    errorEmitter.emit('permission-error', permissionError);
+                    throw serverError; // Re-throw to be caught by the outer try-catch
+                });
+            
+            // Also save to localStorage as a fallback/cache
+            localStorage.setItem('authorizedUserFace', capturedImage);
+
             toast({
                 title: 'User Saved',
                 description: 'The user\'s face has been registered successfully.'
             });
-        }, 1500);
+
+        } catch (error) {
+            console.error("Error saving authorized user:", error);
+            if (!(error instanceof FirestorePermissionError)) {
+                toast({
+                    variant: "destructive",
+                    title: "Save Failed",
+                    description: "Could not save the authorized user's face.",
+                });
+            }
+        } finally {
+            setIsSaving(false);
+            setCapturedImage(null);
+        }
     }
 
     const resetCapture = () => {
@@ -184,7 +217,7 @@ export default function FaceUploader() {
                     <AlertDialogHeader>
                     <AlertDialogTitle>Confirm New User</AlertDialogTitle>
                     <AlertDialogDescription>
-                        Are you sure you want to save this capture as the new authorized user? This will overwrite any existing user.
+                        Are you sure you want to save this capture as the new authorized user? This will overwrite any existing user data.
                     </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
