@@ -4,6 +4,7 @@ import { Toaster } from '@/components/ui/toaster';
 import ClientLayout from './client-layout';
 import { ProjectsProvider } from '@/context/ProjectsContext';
 import { FirebaseClientProvider } from '@/firebase';
+import { ThemeProvider } from 'next-themes';
 
 export const metadata: Metadata = {
   title: 'Project',
@@ -24,11 +25,13 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased">
-        <FirebaseClientProvider>
-          <ProjectsProvider>
-              <ClientLayout>{children}</ClientLayout>
-          </ProjectsProvider>
-        </FirebaseClientProvider>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <FirebaseClientProvider>
+            <ProjectsProvider>
+                <ClientLayout>{children}</ClientLayout>
+            </ProjectsProvider>
+          </FirebaseClientProvider>
+        </ThemeProvider>
         <Toaster />
       </body>
     </html>

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, FolderKanban, MessageCircle, LogOut, Shield, MoreVertical, FileArchive } from 'lucide-react';
+import { Home, FolderKanban, MessageCircle, LogOut, Shield, MoreVertical, FileArchive, Sun, Moon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { useTheme } from 'next-themes';
 
 const navItems = [
   { href: '/', label: 'Dashboard', icon: Home },
@@ -25,6 +26,7 @@ interface TopNavProps {
 
 export default function TopNav({ onLogout }: TopNavProps) {
   const pathname = usePathname();
+  const { theme, setTheme } = useTheme();
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-card border-b shadow-sm">
@@ -63,6 +65,11 @@ export default function TopNav({ onLogout }: TopNavProps) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                 <DropdownMenuItem onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="flex items-center cursor-pointer">
+                    {theme === 'dark' ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}
+                    <span>{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
                   <Link href="/my-files" className="flex items-center cursor-pointer">
                     <FileArchive className="mr-2 h-4 w-4" />
