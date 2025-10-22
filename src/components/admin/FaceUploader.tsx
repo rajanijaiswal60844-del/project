@@ -132,9 +132,6 @@ export default function FaceUploader() {
                     errorEmitter.emit('permission-error', permissionError);
                     throw serverError; // Re-throw to be caught by the outer try-catch
                 });
-            
-            // Also save to localStorage as a fallback/cache
-            localStorage.setItem('authorizedUserFace', capturedImage);
 
             toast({
                 title: 'User Saved',

@@ -56,26 +56,23 @@ export default function ProjectAccessGate({ children }: { children: ReactNode })
   }, [getCameraPermission]);
   
   const getAuthorizedUserImage = async (): Promise<string | null> => {
-    if (!firestore) return localStorage.getItem('authorizedUserFace');
+    if (!firestore) {
+      toast({ variant: 'destructive', title: 'Database not available' });
+      return null;
+    }
 
     try {
         const configRef = doc(firestore, 'systemConfig', 'authorizedUser');
         const docSnap = await getDoc(configRef);
 
-        if (docSnap.exists()) {
-            const data = docSnap.data();
-            if (data.faceDataUrl) {
-                 // Cache in localStorage for faster subsequent access
-                localStorage.setItem('authorizedUserFace', data.faceDataUrl);
-                return data.faceDataUrl;
-            }
+        if (docSnap.exists() && docSnap.data().faceDataUrl) {
+            return docSnap.data().faceDataUrl;
         }
-        // If not in Firestore, fallback to localStorage
-        return localStorage.getItem('authorizedUserFace');
+        return null;
     } catch (error) {
         console.error("Error fetching authorized user from Firestore:", error);
-        // Fallback to localStorage on error
-        return localStorage.getItem('authorizedUserFace');
+        toast({ variant: 'destructive', title: 'Error fetching user data' });
+        return null;
     }
   }
 
